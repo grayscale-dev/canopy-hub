@@ -1,9 +1,2 @@
-[00:01:35.099] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.103] Server  ERROR   ⨯ "unhandledRejection:" Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.104] Server  ERROR   ⨯ "unhandledRejection: " Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.106] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.108] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.110] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.111] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.113] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
-[00:01:35.114] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/zach/git/grayscale/canopy-hub/app'
+[00:00:01.219] Server  LOG     ✓ Ready in 1112ms
+[00:00:03.967] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold

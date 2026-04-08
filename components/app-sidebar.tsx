@@ -50,11 +50,19 @@ export function AppSidebar({
       <SidebarHeader>
         <div className="px-2 py-1">
           <Image
-            src="/logo.svg"
+            src="/logo.png"
             alt="Canopy Hub"
             width={140}
             height={40}
-            className="h-10 w-auto"
+            className="h-10 w-auto dark:hidden"
+            priority
+          />
+          <Image
+            src="/logo-light.png"
+            alt="Canopy Hub"
+            width={140}
+            height={40}
+            className="hidden h-10 w-auto dark:block"
             priority
           />
         </div>

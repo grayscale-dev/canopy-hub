@@ -26,11 +26,19 @@ export default async function LoginPage() {
     <main className="flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
       <div className="w-full max-w-sm">
         <Image
-          src="/logo.svg"
+          src="/logo.png"
           alt="Canopy Hub logo"
           width={120}
           height={40}
-          className="mx-auto mb-6 h-10 w-auto"
+          className="mx-auto mb-6 h-10 w-auto dark:hidden"
+          priority
+        />
+        <Image
+          src="/logo-light.png"
+          alt="Canopy Hub logo"
+          width={120}
+          height={40}
+          className="mx-auto mb-6 hidden h-10 w-auto dark:block"
           priority
         />
         <Card className="text-center">

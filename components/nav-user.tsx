@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import {
@@ -12,8 +13,11 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -43,6 +47,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { theme, setTheme } = useTheme()
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   const initials = getInitials(user.name, user.email)
@@ -92,6 +97,22 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Theme</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={theme ?? "system"}
+                onValueChange={(value) =>
+                  setTheme(value as "system" | "light" | "dark")
+                }
+              >
+                <DropdownMenuRadioItem value="system">
+                  System (default)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut} disabled={isSigningOut}>
               <LogOutIcon />

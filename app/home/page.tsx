@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { AprilBranchSummaryTable } from "@/components/home/april-branch-summary-table"
 import { CanopyProductionChart } from "@/components/home/canopy-production-chart"
 import {
   Breadcrumb,
@@ -14,7 +15,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { fetchCanopyProductionSeriesFromRpc } from "@/lib/hub-data"
+import {
+  fetchAprilBranchSummaryFromRpc,
+  fetchCanopyProductionSeriesFromRpc,
+} from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export default async function HomePage() {
@@ -53,17 +57,44 @@ export default async function HomePage() {
       null,
   }
   const firstName = sidebarUser.name.trim().split(/\s+/)[0] || "there"
+  const aprilYear = new Date().getFullYear()
 
   let productionChartError: string | null = null
   let productionSeries: Awaited<
     ReturnType<typeof fetchCanopyProductionSeriesFromRpc>
   > | null = null
+  let aprilBranchError: string | null = null
+  let aprilBranchSummary: Awaited<
+    ReturnType<typeof fetchAprilBranchSummaryFromRpc>
+  > = []
 
-  try {
-    productionSeries = await fetchCanopyProductionSeriesFromRpc()
-  } catch {
+  const [chartResult, aprilBranchResult] = await Promise.allSettled([
+    fetchCanopyProductionSeriesFromRpc(),
+    fetchAprilBranchSummaryFromRpc(),
+  ])
+
+  if (chartResult.status === "fulfilled") {
+    productionSeries = chartResult.value
+  } else {
     productionChartError = "Data load failed."
   }
+
+  if (aprilBranchResult.status === "fulfilled") {
+    aprilBranchSummary = aprilBranchResult.value
+  } else {
+    aprilBranchError = "Data load failed."
+  }
+  const topAprilBranchSummary = [...aprilBranchSummary]
+    .sort((a, b) => {
+      if (b.fileCount !== a.fileCount) {
+        return b.fileCount - a.fileCount
+      }
+      if (b.totalVolume !== a.totalVolume) {
+        return b.totalVolume - a.totalVolume
+      }
+      return a.branchName.localeCompare(b.branchName)
+    })
+    .slice(0, 20)
 
   return (
     <SidebarProvider>
@@ -111,6 +142,21 @@ export default async function HomePage() {
                   monthlyFundedVolumes={productionSeries.monthlyFundedVolumes}
                 />
               </div>
+            )}
+          </div>
+          <div className="rounded-xl border bg-card p-6 text-card-foreground">
+            <h2 className="text-xl font-semibold">April {aprilYear} Branch Summary</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Funded file count and total funded volume by branch.
+            </p>
+            {aprilBranchError ? (
+              <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
+            ) : topAprilBranchSummary.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No funded files were found for April {aprilYear}.
+              </p>
+            ) : (
+              <AprilBranchSummaryTable rows={topAprilBranchSummary} />
             )}
           </div>
         </div>

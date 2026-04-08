@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { AprilBranchSummaryTable } from "@/components/home/april-branch-summary-table"
+import { AprilDivisionSummaryTable } from "@/components/home/april-division-summary-table"
 import { CanopyProductionChart } from "@/components/home/canopy-production-chart"
 import {
   Breadcrumb,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import {
   fetchAprilBranchSummaryFromRpc,
+  fetchAprilDivisionSummaryFromRpc,
   fetchCanopyProductionSeriesFromRpc,
 } from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -67,11 +69,17 @@ export default async function HomePage() {
   let aprilBranchSummary: Awaited<
     ReturnType<typeof fetchAprilBranchSummaryFromRpc>
   > = []
+  let aprilDivisionError: string | null = null
+  let aprilDivisionSummary: Awaited<
+    ReturnType<typeof fetchAprilDivisionSummaryFromRpc>
+  > = []
 
-  const [chartResult, aprilBranchResult] = await Promise.allSettled([
+  const [chartResult, aprilDivisionResult, aprilBranchResult] =
+    await Promise.allSettled([
     fetchCanopyProductionSeriesFromRpc(),
+    fetchAprilDivisionSummaryFromRpc(),
     fetchAprilBranchSummaryFromRpc(),
-  ])
+    ])
 
   if (chartResult.status === "fulfilled") {
     productionSeries = chartResult.value
@@ -79,11 +87,28 @@ export default async function HomePage() {
     productionChartError = "Data load failed."
   }
 
+  if (aprilDivisionResult.status === "fulfilled") {
+    aprilDivisionSummary = aprilDivisionResult.value
+  } else {
+    aprilDivisionError = "Data load failed."
+  }
+
   if (aprilBranchResult.status === "fulfilled") {
     aprilBranchSummary = aprilBranchResult.value
   } else {
     aprilBranchError = "Data load failed."
   }
+  const topAprilDivisionSummary = [...aprilDivisionSummary]
+    .sort((a, b) => {
+      if (b.fileCount !== a.fileCount) {
+        return b.fileCount - a.fileCount
+      }
+      if (b.totalVolume !== a.totalVolume) {
+        return b.totalVolume - a.totalVolume
+      }
+      return a.divisionName.localeCompare(b.divisionName)
+    })
+    .slice(0, 20)
   const topAprilBranchSummary = [...aprilBranchSummary]
     .sort((a, b) => {
       if (b.fileCount !== a.fileCount) {
@@ -144,20 +169,41 @@ export default async function HomePage() {
               </div>
             )}
           </div>
-          <div className="rounded-xl border bg-card p-6 text-card-foreground">
-            <h2 className="text-xl font-semibold">April {aprilYear} Branch Summary</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Funded file count and total funded volume by branch.
-            </p>
-            {aprilBranchError ? (
-              <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
-            ) : topAprilBranchSummary.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">
-                No funded files were found for April {aprilYear}.
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border bg-card p-6 text-card-foreground">
+              <h2 className="text-xl font-semibold">
+                April {aprilYear} Division Summary
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Funded file count and total funded volume by division.
               </p>
-            ) : (
-              <AprilBranchSummaryTable rows={topAprilBranchSummary} />
-            )}
+              {aprilDivisionError ? (
+                <p className="mt-4 text-sm text-destructive">{aprilDivisionError}</p>
+              ) : topAprilDivisionSummary.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  No funded files were found for April {aprilYear}.
+                </p>
+              ) : (
+                <AprilDivisionSummaryTable rows={topAprilDivisionSummary} />
+              )}
+            </div>
+            <div className="rounded-xl border bg-card p-6 text-card-foreground">
+              <h2 className="text-xl font-semibold">
+                April {aprilYear} Branch Summary
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Funded file count and total funded volume by branch.
+              </p>
+              {aprilBranchError ? (
+                <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
+              ) : topAprilBranchSummary.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  No funded files were found for April {aprilYear}.
+                </p>
+              ) : (
+                <AprilBranchSummaryTable rows={topAprilBranchSummary} />
+              )}
+            </div>
           </div>
         </div>
       </SidebarInset>

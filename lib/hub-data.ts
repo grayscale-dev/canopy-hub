@@ -17,9 +17,23 @@ interface AprilBranchSummaryRpcRow {
   total_volume: number
 }
 
+interface AprilDivisionSummaryRpcRow {
+  division_id: string | null
+  division_name: string
+  file_count: number
+  total_volume: number
+}
+
 export interface AprilBranchSummary {
   branchId: string | null
   branchName: string
+  fileCount: number
+  totalVolume: number
+}
+
+export interface AprilDivisionSummary {
+  divisionId: string | null
+  divisionName: string
   fileCount: number
   totalVolume: number
 }
@@ -58,6 +72,26 @@ export async function fetchAprilBranchSummaryFromRpc(): Promise<
   return rows.map((row) => ({
     branchId: row.branch_id,
     branchName: row.branch_name || "Unknown Branch",
+    fileCount: Number(row.file_count) || 0,
+    totalVolume: Number(row.total_volume) || 0,
+  }))
+}
+
+export async function fetchAprilDivisionSummaryFromRpc(): Promise<
+  AprilDivisionSummary[]
+> {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.rpc("get_division_april_summary")
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const rows = (data ?? []) as AprilDivisionSummaryRpcRow[]
+
+  return rows.map((row) => ({
+    divisionId: row.division_id,
+    divisionName: row.division_name || "Unknown Division",
     fileCount: Number(row.file_count) || 0,
     totalVolume: Number(row.total_volume) || 0,
   }))

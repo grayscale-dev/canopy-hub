@@ -1,21 +1,41 @@
-# Next.js template
+# Canopy Hub
 
-This is a Next.js template with shadcn/ui.
+Next.js app with shadcn/ui and Supabase wiring.
 
-## Adding components
+## Supabase setup
 
-To add components to your app, run the following command:
+1. Copy `.env.example` to `.env.local`.
+2. Set your project values:
 
 ```bash
-npx shadcn@latest add button
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-This will place the ui components in the `components` directory.
+## Supabase clients
 
-## Using components
+- Browser client: `lib/supabase/client.ts`
+- Server client: `lib/supabase/server.ts`
 
-To use the components in your app, import them as follows:
+Example in a Server Component:
 
 ```tsx
-import { Button } from "@/components/ui/button";
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export default async function Page() {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.from("your_table").select("*").limit(10)
+
+  if (error) {
+    return <pre>{error.message}</pre>
+  }
+
+  return <pre>{JSON.stringify(data, null, 2)}</pre>
+}
+```
+
+## Adding shadcn components
+
+```bash
+pnpm dlx shadcn@latest add button input card
 ```

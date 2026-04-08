@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
-import { SignOutButton } from "@/app/home/sign-out-button"
 import { AppSidebar } from "@/components/app-sidebar"
+import { CanopyProductionChart } from "@/components/home/canopy-production-chart"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,6 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { fetchCanopyProductionSeriesFromRpc } from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export default async function HomePage() {
@@ -51,6 +52,18 @@ export default async function HomePage() {
       (identityData.picture as string | undefined) ??
       null,
   }
+  const firstName = sidebarUser.name.trim().split(/\s+/)[0] || "there"
+
+  let productionChartError: string | null = null
+  let productionSeries: Awaited<
+    ReturnType<typeof fetchCanopyProductionSeriesFromRpc>
+  > | null = null
+
+  try {
+    productionSeries = await fetchCanopyProductionSeriesFromRpc()
+  } catch {
+    productionChartError = "Data load failed."
+  }
 
   return (
     <SidebarProvider>
@@ -71,15 +84,34 @@ export default async function HomePage() {
           </Breadcrumb>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="rounded-xl border bg-card p-6 text-card-foreground">
-            <h1 className="text-2xl font-semibold">Welcome to Canopy Hub</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Signed in as{" "}
-              <span className="font-medium text-foreground">{user.email}</span>
+          <div className="px-1 py-2">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Welcome back, {firstName}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Monitor production trends, performance, and key operational metrics.
             </p>
-            <div className="mt-6">
-              <SignOutButton />
-            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-6 text-card-foreground">
+            <h2 className="text-xl font-semibold">
+              Canopy Production Last 12 Months
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Funded Loans (bar) and Funded Volume (line)
+            </p>
+            {productionChartError || !productionSeries ? (
+              <p className="mt-4 text-sm text-destructive">
+                {productionChartError ?? "Data load failed."}
+              </p>
+            ) : (
+              <div className="mt-4">
+                <CanopyProductionChart
+                  labels={productionSeries.labels}
+                  monthlyFundedCounts={productionSeries.monthlyFundedCounts}
+                  monthlyFundedVolumes={productionSeries.monthlyFundedVolumes}
+                />
+              </div>
+            )}
           </div>
         </div>
       </SidebarInset>

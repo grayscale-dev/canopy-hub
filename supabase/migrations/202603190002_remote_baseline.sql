@@ -1,0 +1,2 @@
+-- Placeholder migration to mirror remote history version 202603190002.
+-- This version was already applied in remote before local scaffolding.

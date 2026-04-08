@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Canopy Hub",
   description: "Canopy Hub web application",
+  icons: {
+    icon: "/CanopyLogoCube100.png",
+    shortcut: "/CanopyLogoCube100.png",
+    apple: "/CanopyLogoCube100.png",
+  },
 };
 
 export default function RootLayout({

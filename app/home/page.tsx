@@ -1,8 +1,17 @@
 import { redirect } from "next/navigation"
+import Image from "next/image"
+import Link from "next/link"
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaLinkedinIn,
+  FaYoutube,
+} from "react-icons/fa"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { AprilSummaryTable } from "@/components/home/april-summary-table"
 import { CanopyProductionChart } from "@/components/home/canopy-production-chart"
+import { FundedLoansByProgramPieChart } from "@/components/home/funded-loans-by-program-pie-chart"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +24,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
 import {
   fetchAprilBranchSummaryFromRpc,
   fetchAprilDivisionSummaryFromRpc,
@@ -23,8 +33,50 @@ import {
   fetchAprilUnderwriterSummaryFromRpc,
   fetchAprilUnderwritingOrgSummaryFromRpc,
   fetchCanopyProductionSeriesFromRpc,
+  fetchCorporateTurnSummaryFromRpc,
+  fetchPreviousMonthLoanProgramSummaryFromRpc,
 } from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+const SOCIAL_MEDIA_LINKS = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/canopy.mortgage",
+    icon: FaInstagram,
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/canopy-mortgage",
+    icon: FaLinkedinIn,
+  },
+  {
+    label: "YouTube",
+    href: "https://www.youtube.com/@canopymortgage",
+    icon: FaYoutube,
+  },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/people/CanopyMortgage/61555767074405",
+    icon: FaFacebookF,
+  },
+] as const
+
+const CORPORATE_TURN_SECTION_LABELS: Record<string, string> = {
+  Processing: "Corporate Processing Metrics",
+  Underwriting: "Corporate Underwriting Metrics",
+  Closing: "Corporate Closing Metrics",
+}
+
+const CORPORATE_TURN_SECTION_ORDER = ["Processing", "Underwriting", "Closing"]
+
+const WHOLE_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+})
+
+const ONE_DECIMAL_FORMATTER = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+})
 
 function toTop20ByPerformance<
   T extends { fileCount: number; totalVolume: number; name: string },
@@ -108,6 +160,14 @@ export default async function HomePage() {
   let aprilUnderwritingOrgSummary: Awaited<
     ReturnType<typeof fetchAprilUnderwritingOrgSummaryFromRpc>
   > = []
+  let corporateTurnError: string | null = null
+  let corporateTurnSummary: Awaited<
+    ReturnType<typeof fetchCorporateTurnSummaryFromRpc>
+  > | null = null
+  let loanProgramChartError: string | null = null
+  let loanProgramChartSummary: Awaited<
+    ReturnType<typeof fetchPreviousMonthLoanProgramSummaryFromRpc>
+  > | null = null
 
   const [
     chartResult,
@@ -117,6 +177,8 @@ export default async function HomePage() {
     aprilProcessorResult,
     aprilUnderwriterResult,
     aprilUnderwritingOrgResult,
+    corporateTurnResult,
+    loanProgramChartResult,
   ] =
     await Promise.allSettled([
       fetchCanopyProductionSeriesFromRpc(),
@@ -126,6 +188,8 @@ export default async function HomePage() {
       fetchAprilProcessorSummaryFromRpc(),
       fetchAprilUnderwriterSummaryFromRpc(),
       fetchAprilUnderwritingOrgSummaryFromRpc(),
+      fetchCorporateTurnSummaryFromRpc(),
+      fetchPreviousMonthLoanProgramSummaryFromRpc(),
     ])
 
   if (chartResult.status === "fulfilled") {
@@ -168,6 +232,18 @@ export default async function HomePage() {
     aprilUnderwritingOrgSummary = aprilUnderwritingOrgResult.value
   } else {
     aprilUnderwritingOrgError = "Data load failed."
+  }
+
+  if (corporateTurnResult.status === "fulfilled") {
+    corporateTurnSummary = corporateTurnResult.value
+  } else {
+    corporateTurnError = "Data load failed."
+  }
+
+  if (loanProgramChartResult.status === "fulfilled") {
+    loanProgramChartSummary = loanProgramChartResult.value
+  } else {
+    loanProgramChartError = "Data load failed."
   }
 
   const topAprilDivisionSummary = toTop20ByPerformance(
@@ -224,6 +300,27 @@ export default async function HomePage() {
     }))
   )
 
+  const corporateTurnSections = corporateTurnSummary
+    ? [
+        ...CORPORATE_TURN_SECTION_ORDER.map((sectionType) => ({
+          sectionType,
+          label: CORPORATE_TURN_SECTION_LABELS[sectionType] ?? sectionType,
+          rows: corporateTurnSummary.tableRows.filter(
+            (row) => row.statusType === sectionType
+          ),
+        })),
+        ...[...new Set(corporateTurnSummary.tableRows.map((row) => row.statusType))]
+          .filter((sectionType) => !CORPORATE_TURN_SECTION_ORDER.includes(sectionType))
+          .map((sectionType) => ({
+            sectionType,
+            label: CORPORATE_TURN_SECTION_LABELS[sectionType] ?? sectionType,
+            rows: corporateTurnSummary.tableRows.filter(
+              (row) => row.statusType === sectionType
+            ),
+          })),
+      ].filter((section) => section.rows.length > 0)
+    : []
+
   return (
     <SidebarProvider>
       <AppSidebar user={sidebarUser} />
@@ -242,157 +339,368 @@ export default async function HomePage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="px-1 py-2">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Welcome back, {firstName}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Monitor production trends, performance, and key operational metrics.
-            </p>
-          </div>
-          <div className="rounded-xl border bg-card p-6 text-card-foreground">
-            <h2 className="text-xl font-semibold">
-              Canopy Production Last 12 Months
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Funded Loans (bar) and Funded Volume (line)
-            </p>
-            {productionChartError || !productionSeries ? (
-              <p className="mt-4 text-sm text-destructive">
-                {productionChartError ?? "Data load failed."}
+        <div className="flex flex-1 flex-col gap-4 p-4 xl:flex-row">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <div className="px-1 py-2">
+              <h1 className="text-3xl font-semibold tracking-tight">
+                Welcome back, {firstName}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Monitor production trends, performance, and key operational metrics.
               </p>
-            ) : (
-              <div className="mt-4">
-                <CanopyProductionChart
-                  labels={productionSeries.labels}
-                  monthlyFundedCounts={productionSeries.monthlyFundedCounts}
-                  monthlyFundedVolumes={productionSeries.monthlyFundedVolumes}
-                />
-              </div>
-            )}
-          </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="xl:col-span-2 px-1 pt-2">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                April&apos;s Leaderboard
+            </div>
+            <div className="rounded-xl border bg-card p-6 text-card-foreground">
+              <h2 className="text-xl font-semibold">
+                Canopy Production Last 12 Months
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ranked funded file count and volume across teams and roles.
+                Funded Loans (bar) and Funded Volume (line)
               </p>
-            </div>
-            <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Division</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by division.
-              </p>
-              {aprilDivisionError ? (
-                <p className="mt-4 text-sm text-destructive">{aprilDivisionError}</p>
-              ) : topAprilDivisionSummary.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
+              {productionChartError || !productionSeries ? (
+                <p className="mt-4 text-sm text-destructive">
+                  {productionChartError ?? "Data load failed."}
                 </p>
               ) : (
-                <AprilSummaryTable
-                  entityLabel="Division"
-                  rows={topAprilDivisionSummary}
-                />
+                <div className="mt-4">
+                  <CanopyProductionChart
+                    labels={productionSeries.labels}
+                    monthlyFundedCounts={productionSeries.monthlyFundedCounts}
+                    monthlyFundedVolumes={productionSeries.monthlyFundedVolumes}
+                  />
+                </div>
               )}
             </div>
             <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Branch</h2>
+              <h2 className="text-xl font-semibold">Corporate Turn Times</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by branch.
+                Corporate workflow status metrics and turnaround times.
               </p>
-              {aprilBranchError ? (
-                <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
-              ) : topAprilBranchSummary.length === 0 ? (
+              {corporateTurnError ? (
+                <p className="mt-4 text-sm text-destructive">{corporateTurnError}</p>
+              ) : !corporateTurnSummary ||
+                corporateTurnSummary.tableRows.length === 0 ? (
                 <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
+                  No corporate turn time data is available.
                 </p>
               ) : (
-                <AprilSummaryTable entityLabel="Branch" rows={topAprilBranchSummary} />
+                <>
+                  <div className="mt-4 overflow-hidden rounded-lg border">
+                    <div className="grid grid-cols-[2.2fr_repeat(4,minmax(0,1fr))] gap-x-3 border-b bg-muted/10 px-3 py-2 text-xs font-medium text-muted-foreground">
+                      <div>Status</div>
+                      <div className="text-right">Files In Progress</div>
+                      <div className="text-right">Workdays for Files in Progress</div>
+                      <div className="text-right">Workdays to Complete for Previous Week</div>
+                      <div className="text-right">
+                        Workdays to Complete for Previous Month
+                      </div>
+                    </div>
+                    <div className="divide-y">
+                      {corporateTurnSections.map((section) => (
+                        <div key={section.sectionType}>
+                          <div className="bg-muted/20 px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            {section.label}
+                          </div>
+                          <div className="divide-y">
+                            {section.rows.map((row) => (
+                              <div
+                                key={`${section.sectionType}-${row.status}`}
+                                className="grid grid-cols-[2.2fr_repeat(4,minmax(0,1fr))] gap-x-3 px-3 py-2 text-sm"
+                              >
+                                <p className="font-medium">{row.status}</p>
+                                <p className="text-right font-mono tabular-nums">
+                                  {WHOLE_NUMBER_FORMATTER.format(row.filesInProgress)}
+                                </p>
+                                <p className="text-right font-mono tabular-nums">
+                                  {ONE_DECIMAL_FORMATTER.format(
+                                    row.workdaysForFilesInProgress
+                                  )}
+                                </p>
+                                <p className="text-right font-mono tabular-nums">
+                                  {ONE_DECIMAL_FORMATTER.format(
+                                    row.workdaysToCompleteForPreviousWeek
+                                  )}
+                                </p>
+                                <p className="text-right font-mono tabular-nums">
+                                  {ONE_DECIMAL_FORMATTER.format(
+                                    row.workdaysToCompleteForPreviousMonth
+                                  )}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-2 text-sm md:grid-cols-2">
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-muted-foreground">Workdays for LO/LOA Statuses</p>
+                      <p className="mt-1 font-mono tabular-nums">
+                        {ONE_DECIMAL_FORMATTER.format(
+                          corporateTurnSummary.kpis.workdaysForLoLoaStatuses
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-muted-foreground">
+                        Processing Rushes in the Last 7 Days
+                      </p>
+                      <p className="mt-1 font-mono tabular-nums">
+                        {WHOLE_NUMBER_FORMATTER.format(
+                          corporateTurnSummary.kpis.processingRushesLast7Days
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-muted-foreground">
+                        Underwriting Rushes in the Last 7 Days
+                      </p>
+                      <p className="mt-1 font-mono tabular-nums">
+                        {WHOLE_NUMBER_FORMATTER.format(
+                          corporateTurnSummary.kpis.underwritingRushesLast7Days
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-muted-foreground">
+                        Closing/Funding Rushes in the Last 7 Days
+                      </p>
+                      <p className="mt-1 font-mono tabular-nums">
+                        {WHOLE_NUMBER_FORMATTER.format(
+                          corporateTurnSummary.kpis.closingFundingRushesLast7Days
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </>
               )}
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="xl:col-span-2 px-1 pt-2">
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  April&apos;s Leaderboard
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ranked funded file count and volume across teams and roles.
+                </p>
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Division</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by division.
+                </p>
+                {aprilDivisionError ? (
+                  <p className="mt-4 text-sm text-destructive">{aprilDivisionError}</p>
+                ) : topAprilDivisionSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Division"
+                    rows={topAprilDivisionSummary}
+                  />
+                )}
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Branch</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by branch.
+                </p>
+                {aprilBranchError ? (
+                  <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
+                ) : topAprilBranchSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Branch"
+                    rows={topAprilBranchSummary}
+                  />
+                )}
+              </div>
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Loan Officer</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by loan officer.
+                </p>
+                {aprilLoanOfficerError ? (
+                  <p className="mt-4 text-sm text-destructive">
+                    {aprilLoanOfficerError}
+                  </p>
+                ) : topAprilLoanOfficerSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Loan Officer"
+                    rows={topAprilLoanOfficerSummary}
+                  />
+                )}
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Processor</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by processor.
+                </p>
+                {aprilProcessorError ? (
+                  <p className="mt-4 text-sm text-destructive">{aprilProcessorError}</p>
+                ) : topAprilProcessorSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Processor"
+                    rows={topAprilProcessorSummary}
+                  />
+                )}
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Underwriter</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by underwriter.
+                </p>
+                {aprilUnderwriterError ? (
+                  <p className="mt-4 text-sm text-destructive">
+                    {aprilUnderwriterError}
+                  </p>
+                ) : topAprilUnderwriterSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Underwriter"
+                    rows={topAprilUnderwriterSummary}
+                  />
+                )}
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Underwriting Org</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Funded file count and total funded volume by underwriting org.
+                </p>
+                {aprilUnderwritingOrgError ? (
+                  <p className="mt-4 text-sm text-destructive">
+                    {aprilUnderwritingOrgError}
+                  </p>
+                ) : topAprilUnderwritingOrgSummary.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded files were found for April {aprilYear}.
+                  </p>
+                ) : (
+                  <AprilSummaryTable
+                    entityLabel="Underwriting Org"
+                    rows={topAprilUnderwritingOrgSummary}
+                  />
+                )}
+              </div>
             </div>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Loan Officer</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by loan officer.
-              </p>
-              {aprilLoanOfficerError ? (
-                <p className="mt-4 text-sm text-destructive">
-                  {aprilLoanOfficerError}
+          <aside className="xl:w-80 xl:shrink-0">
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Social Media Sites</h2>
+                <div className="mt-4 space-y-2">
+                  {SOCIAL_MEDIA_LINKS.map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                    >
+                      <item.icon className="h-4 w-4 text-muted-foreground" />
+                      <span>{item.label}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Canopy Wiki</h2>
+                <a
+                  href="https://sites.google.com/canopymortgage.com/trainingwiki/home?authuser=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 block overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
+                >
+                  <Image
+                    src="/training-wiki.jpg"
+                    alt="Canopy Wiki"
+                    width={640}
+                    height={360}
+                    className="h-auto w-full"
+                  />
+                </a>
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Need help now?</h2>
+                <Link
+                  href="/department-directory"
+                  className="mt-4 block overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
+                >
+                  <Image
+                    src="/department-directory.png"
+                    alt="Department Directory"
+                    width={640}
+                    height={360}
+                    className="h-auto w-full"
+                  />
+                </Link>
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Funded Loans by Loan Program</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Previous month distribution ({loanProgramChartSummary?.monthLabel ?? "—"}).
                 </p>
-              ) : topAprilLoanOfficerSummary.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
+                {loanProgramChartError ? (
+                  <p className="mt-4 text-sm text-destructive">{loanProgramChartError}</p>
+                ) : !loanProgramChartSummary ||
+                  loanProgramChartSummary.rows.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No funded loan program data is available for the previous month.
+                  </p>
+                ) : (
+                  <div className="mt-4">
+                    <FundedLoansByProgramPieChart rows={loanProgramChartSummary.rows} />
+                  </div>
+                )}
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Compliment Your Team!</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Notice an employee that works hard without recognition? Say
+                  something nice!
                 </p>
-              ) : (
-                <AprilSummaryTable
-                  entityLabel="Loan Officer"
-                  rows={topAprilLoanOfficerSummary}
-                />
-              )}
+                <div className="mt-4 overflow-hidden rounded-lg border">
+                  <Image
+                    src="/compliment-employee.jpg"
+                    alt="Compliment your team"
+                    width={640}
+                    height={360}
+                    className="h-auto w-full"
+                  />
+                </div>
+                <Button asChild className="mt-4 w-full">
+                  <a
+                    href="https://docs.google.com/forms/d/e/1FAIpQLSd8FR2h37lG3e64t9_qNIoAn6qkUQaiycSyTzrGQO4unHaceA/viewform"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Compliment Your Team!
+                  </a>
+                </Button>
+              </div>
+              <div className="rounded-xl border bg-card p-6 text-card-foreground">
+                <h2 className="text-xl font-semibold">Newsletters</h2>
+              </div>
             </div>
-            <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Processor</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by processor.
-              </p>
-              {aprilProcessorError ? (
-                <p className="mt-4 text-sm text-destructive">{aprilProcessorError}</p>
-              ) : topAprilProcessorSummary.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
-                </p>
-              ) : (
-                <AprilSummaryTable
-                  entityLabel="Processor"
-                  rows={topAprilProcessorSummary}
-                />
-              )}
-            </div>
-            <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Underwriter</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by underwriter.
-              </p>
-              {aprilUnderwriterError ? (
-                <p className="mt-4 text-sm text-destructive">{aprilUnderwriterError}</p>
-              ) : topAprilUnderwriterSummary.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
-                </p>
-              ) : (
-                <AprilSummaryTable
-                  entityLabel="Underwriter"
-                  rows={topAprilUnderwriterSummary}
-                />
-              )}
-            </div>
-            <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Underwriting Org</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Funded file count and total funded volume by underwriting org.
-              </p>
-              {aprilUnderwritingOrgError ? (
-                <p className="mt-4 text-sm text-destructive">
-                  {aprilUnderwritingOrgError}
-                </p>
-              ) : topAprilUnderwritingOrgSummary.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No funded files were found for April {aprilYear}.
-                </p>
-              ) : (
-                <AprilSummaryTable
-                  entityLabel="Underwriting Org"
-                  rows={topAprilUnderwritingOrgSummary}
-                />
-              )}
-            </div>
-          </div>
+          </aside>
         </div>
       </SidebarInset>
     </SidebarProvider>

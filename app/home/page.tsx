@@ -113,23 +113,14 @@ export default async function HomePage() {
   >
   const metadata = user.user_metadata as Record<string, unknown>
 
-  const sidebarUser = {
-    name:
-      (metadata.full_name as string | undefined) ??
-      (metadata.name as string | undefined) ??
-      (identityData.full_name as string | undefined) ??
-      (identityData.name as string | undefined) ??
-      user.email?.split("@")[0] ??
-      "User",
-    email: user.email ?? "unknown@example.com",
-    avatar:
-      (metadata.avatar_url as string | undefined) ??
-      (metadata.picture as string | undefined) ??
-      (identityData.avatar_url as string | undefined) ??
-      (identityData.picture as string | undefined) ??
-      null,
-  }
-  const firstName = sidebarUser.name.trim().split(/\s+/)[0] || "there"
+  const displayName =
+    (metadata.full_name as string | undefined) ??
+    (metadata.name as string | undefined) ??
+    (identityData.full_name as string | undefined) ??
+    (identityData.name as string | undefined) ??
+    user.email?.split("@")[0] ??
+    "there"
+  const firstName = displayName.trim().split(/\s+/)[0] || "there"
   const aprilYear = new Date().getFullYear()
 
   let productionChartError: string | null = null
@@ -323,7 +314,7 @@ export default async function HomePage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar user={sidebarUser} />
+      <AppSidebar activePath="/home" />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
@@ -641,7 +632,7 @@ export default async function HomePage() {
               <div className="rounded-xl border bg-card p-6 text-card-foreground">
                 <h2 className="text-xl font-semibold">Need help now?</h2>
                 <Link
-                  href="/department-directory"
+                  href="/support"
                   className="mt-4 block overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
                 >
                   <Image

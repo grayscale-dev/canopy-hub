@@ -24,6 +24,7 @@ import {
   type Permission,
   type PermissionUser,
 } from "@/lib/permissions-data"
+import { userHasPermissionCode } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -59,13 +60,36 @@ export default async function SettingsSubPage({
     redirect("/login")
   }
 
-  const activePage = SETTINGS_PAGES.find((page) => page.key === section)
+  const canViewSettings = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "settings.access",
+  })
+
+  if (!canViewSettings) {
+    redirect("/home")
+  }
+
+  const canEditPermissions = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "permissions.edit",
+  })
+
+  if (section === "permissions" && !canEditPermissions) {
+    redirect("/settings/general")
+  }
+
+  const visiblePages = SETTINGS_PAGES.filter(
+    (page) => page.key !== "permissions" || canEditPermissions
+  )
+  const activePage = visiblePages.find((page) => page.key === section)
   let permissions: Permission[] = []
   let permissionUsers: PermissionUser[] = []
   let permissionDirectoryUsers: PermissionDirectoryUser[] = []
   let permissionsLoadError: string | null = null
 
-  if (section === "permissions") {
+  if (section === "permissions" && canEditPermissions) {
     try {
       ;[permissions, permissionUsers, permissionDirectoryUsers] = await Promise.all([
         fetchPermissions(),
@@ -111,7 +135,7 @@ export default async function SettingsSubPage({
           <div className="flex flex-1 flex-col gap-4 md:flex-row">
             <aside className="h-fit w-full rounded-xl border bg-card p-2 text-card-foreground md:max-w-56">
               <nav className="grid gap-1">
-                {SETTINGS_PAGES.map((page) => {
+                {visiblePages.map((page) => {
                   const isActive = page.key === section
 
                   return (

@@ -7,6 +7,7 @@ import {
   EntryActionsMenu,
   SectionActionsMenu,
 } from "@/app/support/action-menus"
+import { SupportPermissionsDialog } from "@/app/support/support-permissions-dialog"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -22,6 +23,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { userHasPermissionCode } from "@/lib/permissions"
+import {
+  fetchPermissionDirectoryUsers,
+  fetchPermissionUsers,
+  fetchPermissions,
+  type Permission,
+  type PermissionDirectoryUser,
+  type PermissionUser,
+} from "@/lib/permissions-data"
 import {
   fetchSupportDirectoryData,
   type SupportDirectoryContact,
@@ -112,6 +122,11 @@ function filterSectionByQuery(
 
 function isNotNull<T>(value: T | null): value is T {
   return value !== null
+}
+
+function isSupportPermissionPage(page: string) {
+  const normalized = page.trim().toLowerCase()
+  return normalized === "support" || normalized === "/support"
 }
 
 function buildSupportHref({
@@ -319,10 +334,45 @@ export default async function SupportPage({
     redirect("/login")
   }
 
+  const canEditSupport = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "support.edit",
+  })
+  const canEditPermissions = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "permissions.edit",
+  })
+
+  let supportPermissions: Permission[] = []
+  let supportPermissionUsers: PermissionUser[] = []
+  let supportPermissionDirectoryUsers: PermissionDirectoryUser[] = []
+  let supportPermissionsLoadError: string | null = null
+
+  if (canEditPermissions) {
+    try {
+      const [permissions, permissionUsers, permissionDirectoryUsers] = await Promise.all([
+        fetchPermissions(),
+        fetchPermissionUsers(),
+        fetchPermissionDirectoryUsers(),
+      ])
+
+      supportPermissions = permissions.filter((permission) =>
+        isSupportPermissionPage(permission.page)
+      )
+      supportPermissionUsers = permissionUsers
+      supportPermissionDirectoryUsers = permissionDirectoryUsers
+    } catch {
+      supportPermissionsLoadError = "Data load failed."
+    }
+  }
+
   const resolvedSearchParams = (await searchParams) ?? {}
   const queryText = (firstSearchParam(resolvedSearchParams.q) ?? "").trim()
   const query = queryText.toLowerCase()
-  const isEditMode = (firstSearchParam(resolvedSearchParams.edit) ?? "") === "1"
+  const requestedEditMode = (firstSearchParam(resolvedSearchParams.edit) ?? "") === "1"
+  const isEditMode = requestedEditMode && canEditSupport
 
   let loadError: string | null = null
   let directoryData: Awaited<ReturnType<typeof fetchSupportDirectoryData>> | null = null
@@ -373,14 +423,28 @@ export default async function SupportPage({
               <h1 className="text-3xl font-semibold tracking-tight">{SUPPORT_PAGE_TITLE}</h1>
               <p className="mt-1 text-sm text-muted-foreground">{SUPPORT_PAGE_SUBTITLE}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button asChild variant={isEditMode ? "default" : "outline"} size="sm">
-                <a href={buildSupportHref({ query: queryText, editMode: !isEditMode })}>
-                  {isEditMode ? "Done Editing" : "Edit Content"}
-                </a>
-              </Button>
-              {isEditMode ? <AddSectionActionsMenu /> : null}
-            </div>
+            {canEditSupport || canEditPermissions ? (
+              <div className="flex items-center gap-2">
+                {canEditPermissions ? (
+                  <SupportPermissionsDialog
+                    permissions={supportPermissions}
+                    permissionUsers={supportPermissionUsers}
+                    permissionDirectoryUsers={supportPermissionDirectoryUsers}
+                    loadError={supportPermissionsLoadError}
+                  />
+                ) : null}
+                {canEditSupport ? (
+                  <>
+                    <Button asChild variant={isEditMode ? "default" : "outline"} size="sm">
+                      <a href={buildSupportHref({ query: queryText, editMode: !isEditMode })}>
+                        {isEditMode ? "Done Editing" : "Edit Content"}
+                      </a>
+                    </Button>
+                    {isEditMode ? <AddSectionActionsMenu /> : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <form method="get" className="flex flex-wrap items-center gap-2 px-1">
             <Input

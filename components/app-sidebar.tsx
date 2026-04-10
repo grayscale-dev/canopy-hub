@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { userHasPermissionCode } from "@/lib/permissions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 // This is sample data.
@@ -78,6 +79,16 @@ export async function AppSidebar({
       null,
   }
 
+  const canViewSettings = await userHasPermissionCode({
+    supabase,
+    userId: authUser.id,
+    code: "settings.access",
+  })
+
+  const navSecondary = data.navSecondary.filter(
+    (item) => item.url !== "/settings" || canViewSettings
+  )
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -114,7 +125,7 @@ export async function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {data.navSecondary.map((item) => (
+          {navSecondary.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild isActive={activePath === item.url}>
                 <a href={item.url}>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { userHasPermissionCode } from "@/lib/permissions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 function getString(formData: FormData, key: string) {
@@ -52,6 +53,22 @@ async function getAuthenticatedClient() {
     redirect("/login")
   }
 
+  return { supabase, user }
+}
+
+async function getSupportEditorClient() {
+  const { supabase, user } = await getAuthenticatedClient()
+
+  const hasSupportEditPermission = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "support.edit",
+  })
+
+  if (!hasSupportEditPermission) {
+    throw new Error("Unauthorized")
+  }
+
   return supabase
 }
 
@@ -60,7 +77,7 @@ function revalidateSupportPage() {
 }
 
 export async function createSectionAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const kind = getString(formData, "kind")
 
   if (kind !== "general_help" && kind !== "rush" && kind !== "department") {
@@ -85,7 +102,7 @@ export async function createSectionAction(formData: FormData) {
 }
 
 export async function updateSectionAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "section_id")
   const kind = getString(formData, "kind")
 
@@ -118,7 +135,7 @@ export async function updateSectionAction(formData: FormData) {
 }
 
 export async function deleteSectionAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "section_id")
 
   if (!id) {
@@ -138,7 +155,7 @@ export async function deleteSectionAction(formData: FormData) {
 }
 
 export async function createEntryAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const sectionId = getString(formData, "section_id")
 
   if (!sectionId) {
@@ -163,7 +180,7 @@ export async function createEntryAction(formData: FormData) {
 }
 
 export async function updateEntryAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "entry_id")
 
   if (!id) {
@@ -190,7 +207,7 @@ export async function updateEntryAction(formData: FormData) {
 }
 
 export async function deleteEntryAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "entry_id")
 
   if (!id) {
@@ -210,7 +227,7 @@ export async function deleteEntryAction(formData: FormData) {
 }
 
 export async function createContactAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const entryId = getString(formData, "entry_id")
 
   if (!entryId) {
@@ -236,7 +253,7 @@ export async function createContactAction(formData: FormData) {
 }
 
 export async function updateContactAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "contact_id")
 
   if (!id) {
@@ -262,7 +279,7 @@ export async function updateContactAction(formData: FormData) {
 }
 
 export async function deleteContactAction(formData: FormData) {
-  const supabase = await getAuthenticatedClient()
+  const supabase = await getSupportEditorClient()
   const id = getString(formData, "contact_id")
 
   if (!id) {

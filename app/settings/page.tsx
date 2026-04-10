@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 
+import { userHasPermissionCode } from "@/lib/permissions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export default async function SettingsPage() {
@@ -10,6 +11,16 @@ export default async function SettingsPage() {
 
   if (!user) {
     redirect("/login")
+  }
+
+  const canViewSettings = await userHasPermissionCode({
+    supabase,
+    userId: user.id,
+    code: "settings.access",
+  })
+
+  if (!canViewSettings) {
+    redirect("/home")
   }
 
   redirect("/settings/general")

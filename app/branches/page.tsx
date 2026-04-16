@@ -17,6 +17,10 @@ import {
 import { fetchBranchesDirectoryRows } from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Branches",
+}
+
 export default async function BranchesPage() {
   const supabase = await createSupabaseServerClient()
   const {

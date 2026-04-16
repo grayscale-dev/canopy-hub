@@ -42,6 +42,10 @@ function isDivisionTabKey(value: string): value is DivisionTabKey {
   return TAB_ITEMS.some((item) => item.key === value)
 }
 
+export const metadata = {
+  title: "Division",
+}
+
 export default async function DivisionPage({
   params,
   searchParams,

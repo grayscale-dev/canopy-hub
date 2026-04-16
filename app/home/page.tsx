@@ -41,6 +41,10 @@ import type { FileViewerFilterField } from "@/lib/file-viewer-filters"
 import type { FileViewerFilterOperator } from "@/lib/file-viewer-filters"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Home",
+}
+
 const SOCIAL_MEDIA_LINKS = [
   {
     label: "Instagram",

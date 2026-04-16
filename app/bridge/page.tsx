@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/sidebar"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Bridge",
+}
+
 export default async function BridgePage() {
   const supabase = await createSupabaseServerClient()
   const {

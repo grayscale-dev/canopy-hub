@@ -3,6 +3,10 @@ import { redirect } from "next/navigation"
 import { userHasPermissionCode } from "@/lib/permissions"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Settings",
+}
+
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
   const {

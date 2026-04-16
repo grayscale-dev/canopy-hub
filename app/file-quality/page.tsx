@@ -30,6 +30,10 @@ function getMonthParam(searchParams?: Record<string, string | string[] | undefin
   return raw ?? null
 }
 
+export const metadata = {
+  title: "File Quality",
+}
+
 export default async function FileQualityPage({
   searchParams,
 }: {

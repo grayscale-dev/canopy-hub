@@ -67,6 +67,10 @@ const POINTS_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 })
 
+export const metadata = {
+  title: "Employee",
+}
+
 export default async function EmployeePage({
   params,
   searchParams,

@@ -17,6 +17,10 @@ import {
 import { fetchEmployeeDirectoryRows } from "@/lib/hub-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Employee Directory",
+}
+
 export default async function EmployeeDirectoryPage() {
   const supabase = await createSupabaseServerClient()
   const {

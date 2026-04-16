@@ -49,6 +49,10 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 })
 
+export const metadata = {
+  title: "Pipeline",
+}
+
 function parseViewParam(
   searchParams?: Record<string, string | string[] | undefined>
 ): PipelineViewKey {

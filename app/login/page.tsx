@@ -12,6 +12,10 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import packageJson from "@/package.json"
 
+export const metadata = {
+  title: "Login",
+}
+
 export default async function LoginPage() {
   const supabase = await createSupabaseServerClient()
   const {

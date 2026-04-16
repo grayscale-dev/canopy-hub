@@ -40,6 +40,10 @@ import {
 } from "@/lib/support-directory-data"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export const metadata = {
+  title: "Support",
+}
+
 const SUPPORT_PAGE_TITLE = "Support Directory"
 const SUPPORT_PAGE_SUBTITLE =
   "Find the right inbox quickly, use rush channels for urgent items, and route escalations to the right manager."

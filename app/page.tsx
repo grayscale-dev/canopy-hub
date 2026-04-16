@@ -1,5 +1,9 @@
 import { Button } from "@/components/ui/button"
 
+export const metadata = {
+  title: "Home",
+}
+
 export default function Page() {
   return (
     <div className="flex min-h-svh p-6">

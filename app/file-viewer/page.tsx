@@ -131,6 +131,10 @@ function deriveServerPreFilters(filters: FileViewerFilter[]) {
   }
 }
 
+export const metadata = {
+  title: "File Viewer",
+}
+
 export default async function FileViewerPage({
   searchParams,
 }: {

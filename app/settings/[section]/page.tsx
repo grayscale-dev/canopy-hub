@@ -41,6 +41,19 @@ function isSettingsPage(value: string): value is SettingsPageKey {
   return SETTINGS_PAGES.some((page) => page.key === value)
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ section: string }>
+}) {
+  const resolvedParams = await params
+  const section = SETTINGS_PAGES.find((page) => page.key === resolvedParams.section)
+
+  return {
+    title: section ? `Settings - ${section.label}` : "Settings",
+  }
+}
+
 export default async function SettingsSubPage({
   params,
 }: {

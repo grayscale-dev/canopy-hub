@@ -14,6 +14,10 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  title: {
+    default: "Canopy Hub",
+    template: "Canopy Hub | %s",
+  },
   icons: {
     icon: "/canopy-logo-cube-100.png",
     shortcut: "/canopy-logo-cube-100.png",

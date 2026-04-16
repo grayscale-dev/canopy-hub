@@ -40,6 +40,10 @@ function isBranchTabKey(value: string): value is BranchTabKey {
   return TAB_ITEMS.some((item) => item.key === value)
 }
 
+export const metadata = {
+  title: "Branch",
+}
+
 export default async function BranchPage({
   params,
   searchParams,

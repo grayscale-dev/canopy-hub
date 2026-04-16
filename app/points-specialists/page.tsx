@@ -30,6 +30,10 @@ const POINTS_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 })
 
+export const metadata = {
+  title: "Points Specialists",
+}
+
 function parseSelectedOrgIds(
   searchParams?: Record<string, string | string[] | undefined>
 ) {

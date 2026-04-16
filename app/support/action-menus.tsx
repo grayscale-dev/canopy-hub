@@ -100,7 +100,7 @@ export function AddSectionActionsMenu() {
                 Kind
                 <select
                   name="kind"
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  className="h-9 rounded-md border border-input bg-transparent pl-3 pr-9 text-sm"
                   defaultValue="department"
                 >
                   <option value="general_help">General Help</option>
@@ -236,7 +236,7 @@ export function SectionActionsMenu({ section }: { section: SupportDirectorySecti
                 Kind
                 <select
                   name="kind"
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  className="h-9 rounded-md border border-input bg-transparent pl-3 pr-9 text-sm"
                   defaultValue={section.kind}
                 >
                   <option value="general_help">General Help</option>

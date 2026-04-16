@@ -16,6 +16,7 @@ import {
   updatePermissionAction,
 } from "@/app/settings/actions"
 import { Button } from "@/components/ui/button"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ export function PermissionsTable({
   permissionUsers: PermissionUser[]
   permissionDirectoryUsers: PermissionDirectoryUser[]
 }) {
+  const pageSize = 50
   const router = useRouter()
   const [query, setQuery] = React.useState("")
   const [pageFilter, setPageFilter] = React.useState("all")
@@ -77,6 +79,9 @@ export function PermissionsTable({
   const [isSaving, startSavingTransition] = React.useTransition()
   const [isAddingUser, startAddUserTransition] = React.useTransition()
   const [isRemovingUser, startRemoveUserTransition] = React.useTransition()
+  const [permissionsPage, setPermissionsPage] = React.useState(1)
+  const [permissionUsersPage, setPermissionUsersPage] = React.useState(1)
+  const [availableUsersPage, setAvailableUsersPage] = React.useState(1)
 
   React.useEffect(() => {
     setLocalPermissionUsers(permissionUsers)
@@ -184,6 +189,39 @@ export function PermissionsTable({
     })
   }, [permissions, pageFilter, query, sortDirection, sortKey])
 
+  const permissionsTotalPages = Math.max(
+    1,
+    Math.ceil(filteredAndSortedPermissions.length / pageSize)
+  )
+  const safePermissionsPage = Math.min(permissionsPage, permissionsTotalPages)
+  const pagedPermissions = React.useMemo(() => {
+    const startIndex = (safePermissionsPage - 1) * pageSize
+    return filteredAndSortedPermissions.slice(startIndex, startIndex + pageSize)
+  }, [filteredAndSortedPermissions, pageSize, safePermissionsPage])
+
+  const permissionUsersTotalPages = Math.max(
+    1,
+    Math.ceil(filteredPermissionUsers.length / pageSize)
+  )
+  const safePermissionUsersPage = Math.min(
+    permissionUsersPage,
+    permissionUsersTotalPages
+  )
+  const pagedPermissionUsers = React.useMemo(() => {
+    const startIndex = (safePermissionUsersPage - 1) * pageSize
+    return filteredPermissionUsers.slice(startIndex, startIndex + pageSize)
+  }, [filteredPermissionUsers, pageSize, safePermissionUsersPage])
+
+  const availableUsersTotalPages = Math.max(
+    1,
+    Math.ceil(filteredAvailableUsers.length / pageSize)
+  )
+  const safeAvailableUsersPage = Math.min(availableUsersPage, availableUsersTotalPages)
+  const pagedAvailableUsers = React.useMemo(() => {
+    const startIndex = (safeAvailableUsersPage - 1) * pageSize
+    return filteredAvailableUsers.slice(startIndex, startIndex + pageSize)
+  }, [filteredAvailableUsers, pageSize, safeAvailableUsersPage])
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"))
@@ -214,7 +252,9 @@ export function PermissionsTable({
     setFormError(null)
     setIsEditing(false)
     setPermissionUsersQuery("")
+    setPermissionUsersPage(1)
     setAddUserQuery("")
+    setAvailableUsersPage(1)
     setSelectedAddUserIds([])
     setAddUserError(null)
     setRemoveUserError(null)
@@ -333,13 +373,16 @@ export function PermissionsTable({
 
   return (
     <>
-      <div className="rounded-xl border bg-card p-4 text-card-foreground">
+      <div className="min-w-0 rounded-xl border bg-card p-4 text-card-foreground">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[220px] flex-1">
             <p className="mb-1 text-xs text-muted-foreground">Search</p>
             <Input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setPermissionsPage(1)
+              }}
               placeholder="Search by name, page, or code"
             />
           </div>
@@ -347,8 +390,11 @@ export function PermissionsTable({
             <p className="mb-1 text-xs text-muted-foreground">Page</p>
             <select
               value={pageFilter}
-              onChange={(event) => setPageFilter(event.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              onChange={(event) => {
+                setPageFilter(event.target.value)
+                setPermissionsPage(1)
+              }}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-9 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <option value="all">All pages</option>
               {pageOptions.map((page) => (
@@ -361,7 +407,7 @@ export function PermissionsTable({
         </div>
 
         <div className="mt-4 overflow-hidden rounded-lg border">
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse">
               <thead className="bg-muted/40">
                 <tr className="border-b">
@@ -417,7 +463,7 @@ export function PermissionsTable({
               </thead>
               <tbody>
                 {filteredAndSortedPermissions.length ? (
-                  filteredAndSortedPermissions.map((permission) => (
+                  pagedPermissions.map((permission) => (
                     <tr
                       key={permission.id}
                       className="cursor-pointer border-b transition-colors hover:bg-muted/30"
@@ -448,6 +494,14 @@ export function PermissionsTable({
             </table>
           </div>
         </div>
+        {filteredAndSortedPermissions.length ? (
+          <DataTablePagination
+            page={safePermissionsPage}
+            totalItems={filteredAndSortedPermissions.length}
+            onPageChange={setPermissionsPage}
+            pageSize={pageSize}
+          />
+        ) : null}
       </div>
 
       <Dialog
@@ -458,7 +512,9 @@ export function PermissionsTable({
             setIsEditing(false)
             setFormError(null)
             setPermissionUsersQuery("")
+            setPermissionUsersPage(1)
             setAddUserQuery("")
+            setAvailableUsersPage(1)
             setSelectedAddUserIds([])
             setAddUserError(null)
             setRemoveUserError(null)
@@ -565,23 +621,27 @@ export function PermissionsTable({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                        setAddUserQuery("")
-                        setSelectedAddUserIds([])
-                        setAddUserError(null)
-                        setIsAddUserModalOpen(true)
-                      }}
+                          setAddUserQuery("")
+                          setAvailableUsersPage(1)
+                          setSelectedAddUserIds([])
+                          setAddUserError(null)
+                          setIsAddUserModalOpen(true)
+                        }}
                       >
                         Add user
                       </Button>
                     </div>
                     <Input
                       value={permissionUsersQuery}
-                      onChange={(event) => setPermissionUsersQuery(event.target.value)}
+                      onChange={(event) => {
+                        setPermissionUsersQuery(event.target.value)
+                        setPermissionUsersPage(1)
+                      }}
                       placeholder="Search users by name, email, or ID"
                       className="mb-2"
                     />
-                    <div className="overflow-hidden rounded-lg border">
-                      <div className="max-h-44 overflow-auto">
+                    <div className="max-w-full overflow-hidden rounded-lg border">
+                      <div className="max-h-44 max-w-full overflow-auto">
                         <table className="w-full border-collapse">
                           <thead className="bg-muted/40">
                             <tr className="border-b">
@@ -598,7 +658,7 @@ export function PermissionsTable({
                           </thead>
                           <tbody>
                             {filteredPermissionUsers.length ? (
-                              filteredPermissionUsers.map((permissionUser) => (
+                              pagedPermissionUsers.map((permissionUser) => (
                                 <tr key={`${permissionUser.permissionId}-${permissionUser.userId}`}>
                                   <td className="border-b px-3 py-2 text-sm">
                                     {permissionUser.fullName ?? permissionUser.userId}
@@ -641,6 +701,14 @@ export function PermissionsTable({
                         </table>
                       </div>
                     </div>
+                    {filteredPermissionUsers.length ? (
+                      <DataTablePagination
+                        page={safePermissionUsersPage}
+                        totalItems={filteredPermissionUsers.length}
+                        onPageChange={setPermissionUsersPage}
+                        pageSize={pageSize}
+                      />
+                    ) : null}
                     {removeUserError ? (
                       <p className="mt-2 text-xs text-destructive">{removeUserError}</p>
                     ) : null}
@@ -689,6 +757,7 @@ export function PermissionsTable({
                   setIsAddUserModalOpen(open)
                   if (!open) {
                     setAddUserQuery("")
+                    setAvailableUsersPage(1)
                     setSelectedAddUserIds([])
                     setAddUserError(null)
                   }
@@ -707,13 +776,14 @@ export function PermissionsTable({
                       value={addUserQuery}
                       onChange={(event) => {
                         setAddUserQuery(event.target.value)
+                        setAvailableUsersPage(1)
                         setAddUserError(null)
                       }}
                       placeholder="Search users by name, email, or ID"
                     />
 
-                    <div className="overflow-hidden rounded-lg border">
-                      <div className="max-h-72 overflow-auto">
+                    <div className="max-w-full overflow-hidden rounded-lg border">
+                      <div className="max-h-72 max-w-full overflow-auto">
                         <table className="w-full border-collapse">
                           <thead className="bg-muted/40">
                             <tr className="border-b">
@@ -730,7 +800,7 @@ export function PermissionsTable({
                           </thead>
                           <tbody>
                             {filteredAvailableUsers.length ? (
-                              filteredAvailableUsers.map((user) => {
+                              pagedAvailableUsers.map((user) => {
                                 const isSelected = selectedAddUserIds.includes(user.userId)
                                 return (
                                   <tr
@@ -791,6 +861,14 @@ export function PermissionsTable({
                         </table>
                       </div>
                     </div>
+                    {filteredAvailableUsers.length ? (
+                      <DataTablePagination
+                        page={safeAvailableUsersPage}
+                        totalItems={filteredAvailableUsers.length}
+                        onPageChange={setAvailableUsersPage}
+                        pageSize={pageSize}
+                      />
+                    ) : null}
 
                     <div className="rounded-lg border bg-muted/20 p-3">
                       <p className="text-xs font-medium text-muted-foreground">

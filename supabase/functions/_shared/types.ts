@@ -60,6 +60,7 @@ export interface QixHyperCube {
   qMeasureInfo?: QixMeasureInfo[];
   qSize?: { qcx?: number; qcy?: number };
   qMode?: string;
+  qColumnOrder?: number[];
   qEffectiveInterColumnSortOrder?: number[];
 }
 

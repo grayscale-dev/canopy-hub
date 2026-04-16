@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import {
   fetchAprilBranchSummaryFromRpc,
   fetchAprilDivisionSummaryFromRpc,
+  type LeaderboardEntityKey,
   fetchAprilLoanOfficerSummaryFromRpc,
   fetchAprilProcessorSummaryFromRpc,
   fetchAprilUnderwriterSummaryFromRpc,
@@ -36,6 +37,8 @@ import {
   fetchCorporateTurnSummaryFromRpc,
   fetchPreviousMonthLoanProgramSummaryFromRpc,
 } from "@/lib/hub-data"
+import type { FileViewerFilterField } from "@/lib/file-viewer-filters"
+import type { FileViewerFilterOperator } from "@/lib/file-viewer-filters"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const SOCIAL_MEDIA_LINKS = [
@@ -78,6 +81,23 @@ const ONE_DECIMAL_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 })
 
+const ENTITY_FILTER_FIELD: Record<LeaderboardEntityKey, FileViewerFilterField> = {
+  division: "division",
+  branch: "branch",
+  loanOfficer: "loanOfficer",
+  processor: "processor",
+  underwriter: "underwriter",
+  underwritingOrg: "underwritingOrg",
+}
+const ENTITY_ID_FILTER_FIELD: Record<LeaderboardEntityKey, FileViewerFilterField> = {
+  division: "divisionId",
+  branch: "branchId",
+  loanOfficer: "loanOfficerId",
+  processor: "processorId",
+  underwriter: "underwriterId",
+  underwritingOrg: "underwritingOrgId",
+}
+
 function toTop20ByPerformance<
   T extends { fileCount: number; totalVolume: number; name: string },
 >(rows: T[]) {
@@ -92,6 +112,74 @@ function toTop20ByPerformance<
       return a.name.localeCompare(b.name)
     })
     .slice(0, 20)
+}
+
+type FileViewerUrlFilter = {
+  field: FileViewerFilterField
+  operator: FileViewerFilterOperator
+  value: string
+}
+
+function toFileViewerHrefFromFilters(filters: FileViewerUrlFilter[]) {
+  if (filters.length === 0) {
+    return "/file-viewer"
+  }
+
+  const params = new URLSearchParams()
+  for (const filter of filters) {
+    params.append("ff", filter.field)
+    params.append("fo", filter.operator)
+    params.append("fv", filter.value)
+  }
+
+  return `/file-viewer?${params.toString()}`
+}
+
+function toFileViewerHref({
+  entity,
+  entityId,
+  label,
+  closedDateStart,
+  closedDateEnd,
+}: {
+  entity: LeaderboardEntityKey
+  entityId: string | null
+  label: string
+  closedDateStart?: string
+  closedDateEnd?: string
+}) {
+  const filters: FileViewerUrlFilter[] = []
+  const entityIdField = ENTITY_ID_FILTER_FIELD[entity]
+  const entityField = ENTITY_FILTER_FIELD[entity]
+  if (entityId?.trim()) {
+    filters.push({
+      field: entityIdField,
+      operator: "equals",
+      value: entityId,
+    })
+  } else if (label.trim()) {
+    filters.push({
+      field: entityField,
+      operator: "equals",
+      value: label,
+    })
+  }
+  if (closedDateStart) {
+    filters.push({
+      field: "closedDate",
+      operator: "onOrAfter",
+      value: closedDateStart,
+    })
+  }
+  if (closedDateEnd) {
+    filters.push({
+      field: "closedDate",
+      operator: "onOrBefore",
+      value: closedDateEnd,
+    })
+  }
+
+  return toFileViewerHrefFromFilters(filters)
 }
 
 export default async function HomePage() {
@@ -122,6 +210,8 @@ export default async function HomePage() {
     "there"
   const firstName = displayName.trim().split(/\s+/)[0] || "there"
   const aprilYear = new Date().getFullYear()
+  const aprilClosedStart = `${aprilYear}-04-01`
+  const aprilClosedEnd = `${aprilYear}-04-30`
 
   let productionChartError: string | null = null
   let productionSeries: Awaited<
@@ -243,6 +333,14 @@ export default async function HomePage() {
       name: row.divisionName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      rowHref: row.divisionId ? `/division/${encodeURIComponent(row.divisionId)}` : undefined,
+      fileViewerHref: toFileViewerHref({
+        entity: "division",
+        entityId: row.divisionId,
+        label: row.divisionName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -252,6 +350,14 @@ export default async function HomePage() {
       name: row.branchName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      rowHref: row.branchId ? `/branch/${encodeURIComponent(row.branchId)}` : undefined,
+      fileViewerHref: toFileViewerHref({
+        entity: "branch",
+        entityId: row.branchId,
+        label: row.branchName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -261,6 +367,16 @@ export default async function HomePage() {
       name: row.loanOfficerName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      rowHref: row.loanOfficerId
+        ? `/employee/${encodeURIComponent(row.loanOfficerId)}`
+        : undefined,
+      fileViewerHref: toFileViewerHref({
+        entity: "loanOfficer",
+        entityId: row.loanOfficerId,
+        label: row.loanOfficerName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -270,6 +386,16 @@ export default async function HomePage() {
       name: row.processorName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      rowHref: row.processorId
+        ? `/employee/${encodeURIComponent(row.processorId)}`
+        : undefined,
+      fileViewerHref: toFileViewerHref({
+        entity: "processor",
+        entityId: row.processorId,
+        label: row.processorName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -279,6 +405,16 @@ export default async function HomePage() {
       name: row.underwriterName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      rowHref: row.underwriterId
+        ? `/employee/${encodeURIComponent(row.underwriterId)}`
+        : undefined,
+      fileViewerHref: toFileViewerHref({
+        entity: "underwriter",
+        entityId: row.underwriterId,
+        label: row.underwriterName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -288,6 +424,13 @@ export default async function HomePage() {
       name: row.underwritingOrgName,
       fileCount: row.fileCount,
       totalVolume: row.totalVolume,
+      fileViewerHref: toFileViewerHref({
+        entity: "underwritingOrg",
+        entityId: row.underwritingOrgId,
+        label: row.underwritingOrgName,
+        closedDateStart: aprilClosedStart,
+        closedDateEnd: aprilClosedEnd,
+      }),
     }))
   )
 
@@ -315,7 +458,7 @@ export default async function HomePage() {
   return (
     <SidebarProvider>
       <AppSidebar activePath="/home" />
-      <SidebarInset>
+      <SidebarInset className="min-w-0 overflow-x-hidden">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
@@ -399,7 +542,23 @@ export default async function HomePage() {
                               >
                                 <p className="font-medium">{row.status}</p>
                                 <p className="text-right font-mono tabular-nums">
-                                  {WHOLE_NUMBER_FORMATTER.format(row.filesInProgress)}
+                                  <Link
+                                    href={toFileViewerHrefFromFilters([
+                                      {
+                                        field: "lastStatus",
+                                        operator: "equals",
+                                        value: row.status,
+                                      },
+                                      {
+                                        field: "closedDate",
+                                        operator: "isEmpty",
+                                        value: "",
+                                      },
+                                    ])}
+                                    className="font-medium text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                                  >
+                                    {WHOLE_NUMBER_FORMATTER.format(row.filesInProgress)}
+                                  </Link>
                                 </p>
                                 <p className="text-right font-mono tabular-nums">
                                   {ONE_DECIMAL_FORMATTER.format(
@@ -437,9 +596,14 @@ export default async function HomePage() {
                         Processing Rushes in the Last 7 Days
                       </p>
                       <p className="mt-1 font-mono tabular-nums">
-                        {WHOLE_NUMBER_FORMATTER.format(
-                          corporateTurnSummary.kpis.processingRushesLast7Days
-                        )}
+                        <Link
+                          href="/file-viewer"
+                          className="font-medium text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                        >
+                          {WHOLE_NUMBER_FORMATTER.format(
+                            corporateTurnSummary.kpis.processingRushesLast7Days
+                          )}
+                        </Link>
                       </p>
                     </div>
                     <div className="rounded-lg border px-3 py-2">
@@ -447,9 +611,14 @@ export default async function HomePage() {
                         Underwriting Rushes in the Last 7 Days
                       </p>
                       <p className="mt-1 font-mono tabular-nums">
-                        {WHOLE_NUMBER_FORMATTER.format(
-                          corporateTurnSummary.kpis.underwritingRushesLast7Days
-                        )}
+                        <Link
+                          href="/file-viewer"
+                          className="font-medium text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                        >
+                          {WHOLE_NUMBER_FORMATTER.format(
+                            corporateTurnSummary.kpis.underwritingRushesLast7Days
+                          )}
+                        </Link>
                       </p>
                     </div>
                     <div className="rounded-lg border px-3 py-2">
@@ -457,9 +626,14 @@ export default async function HomePage() {
                         Closing/Funding Rushes in the Last 7 Days
                       </p>
                       <p className="mt-1 font-mono tabular-nums">
-                        {WHOLE_NUMBER_FORMATTER.format(
-                          corporateTurnSummary.kpis.closingFundingRushesLast7Days
-                        )}
+                        <Link
+                          href="/file-viewer"
+                          className="font-medium text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                        >
+                          {WHOLE_NUMBER_FORMATTER.format(
+                            corporateTurnSummary.kpis.closingFundingRushesLast7Days
+                          )}
+                        </Link>
                       </p>
                     </div>
                   </div>

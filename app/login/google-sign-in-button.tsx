@@ -13,7 +13,7 @@ export function GoogleSignInButton({ className }: { className?: string }) {
     setIsLoading(true)
 
     const supabase = createSupabaseBrowserClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/home`
+    const redirectTo = new URL("/auth/callback", window.location.origin).toString()
 
     await supabase.auth.signInWithOAuth({
       provider: "google",

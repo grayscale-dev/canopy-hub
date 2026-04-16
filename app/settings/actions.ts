@@ -144,3 +144,116 @@ export async function removePermissionUserAction(formData: FormData) {
 
   revalidatePath("/settings/permissions")
 }
+
+interface QlikSourceConfigRow {
+  id: string
+  sync_key: string
+  is_enabled: boolean
+}
+
+interface QlikSyncChunkResponse {
+  success?: boolean
+  error?: string | null
+  hasMore?: boolean
+  nextStartAt?: number | null
+}
+
+export interface RunAllQlikSyncsResult {
+  ok: boolean
+  message: string
+}
+
+export async function runAllQlikSyncsAction(): Promise<RunAllQlikSyncsResult> {
+  const supabase = await getPermissionsEditorClient()
+
+  const { data: sources, error: sourcesError } = await supabase
+    .from("qlik_source_configs")
+    .select("id,sync_key,is_enabled")
+    .eq("is_enabled", true)
+    .order("sync_key", { ascending: true })
+
+  if (sourcesError) {
+    return {
+      ok: false,
+      message: sourcesError.message || "Unable to load qlik_source_configs.",
+    }
+  }
+
+  const enabledSources = ((sources ?? []) as QlikSourceConfigRow[]).filter(
+    (source) => Boolean(source.id) && Boolean(source.sync_key)
+  )
+
+  if (enabledSources.length === 0) {
+    return {
+      ok: true,
+      message: "No enabled Qlik source configs were found.",
+    }
+  }
+
+  const failures: string[] = []
+  let completedCount = 0
+
+  for (const source of enabledSources) {
+    let nextStartAt = 0
+    let attempts = 0
+    let sourceFailed = false
+    const maxChunkAttempts = 200
+
+    while (attempts < maxChunkAttempts) {
+      attempts += 1
+
+      const { data, error } = await supabase.functions.invoke("qlik-sync-source", {
+        body: { sourceConfigId: source.id, startAt: nextStartAt },
+      })
+
+      const payload = (data ?? null) as QlikSyncChunkResponse | null
+
+      if (error || payload?.success === false) {
+        sourceFailed = true
+        failures.push(
+          `${source.sync_key}: ${payload?.error || error?.message || "Sync failed."}`
+        )
+        break
+      }
+
+      if (!payload?.hasMore) {
+        completedCount += 1
+        break
+      }
+
+      if (
+        typeof payload.nextStartAt !== "number" ||
+        payload.nextStartAt <= nextStartAt
+      ) {
+        sourceFailed = true
+        failures.push(
+          `${source.sync_key}: Invalid chunk cursor returned by edge function.`
+        )
+        break
+      }
+
+      nextStartAt = payload.nextStartAt
+    }
+
+    if (!sourceFailed && attempts >= maxChunkAttempts) {
+      failures.push(
+        `${source.sync_key}: Exceeded max chunk attempts before completion.`
+      )
+    }
+  }
+
+  revalidatePath("/settings/advanced")
+
+  if (failures.length > 0) {
+    const preview = failures.slice(0, 5).join(" | ")
+    return {
+      ok: false,
+      message: `${failures.length} of ${enabledSources.length} syncs failed. ${preview}`,
+    }
+  }
+
+  return {
+    ok: true,
+    message: `Completed ${completedCount} of ${enabledSources.length} enabled source syncs.`,
+  }
+}

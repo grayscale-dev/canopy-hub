@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { AdvancedSyncCard } from "@/app/settings/[section]/advanced-sync-card"
 import { PermissionsTable } from "@/app/settings/[section]/permissions-table"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
@@ -31,6 +32,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 const SETTINGS_PAGES = [
   { key: "general", label: "General" },
   { key: "permissions", label: "Permissions" },
+  { key: "advanced", label: "Advanced" },
 ] as const
 
 type SettingsPageKey = (typeof SETTINGS_PAGES)[number]["key"]
@@ -76,12 +78,14 @@ export default async function SettingsSubPage({
     code: "permissions.edit",
   })
 
-  if (section === "permissions" && !canEditPermissions) {
+  if ((section === "permissions" || section === "advanced") && !canEditPermissions) {
     redirect("/settings/general")
   }
 
   const visiblePages = SETTINGS_PAGES.filter(
-    (page) => page.key !== "permissions" || canEditPermissions
+    (page) =>
+      (page.key !== "permissions" && page.key !== "advanced") ||
+      canEditPermissions
   )
   const activePage = visiblePages.find((page) => page.key === section)
   let permissions: Permission[] = []
@@ -156,7 +160,7 @@ export default async function SettingsSubPage({
               </nav>
             </aside>
 
-            <section className="min-h-[420px] flex-1">
+            <section className="min-h-[420px] min-w-0 flex-1">
               {section === "permissions" ? (
                 permissionsLoadError ? (
                   <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
@@ -169,6 +173,8 @@ export default async function SettingsSubPage({
                     permissionDirectoryUsers={permissionDirectoryUsers}
                   />
                 )
+              ) : section === "advanced" ? (
+                <AdvancedSyncCard />
               ) : (
                 <div className="rounded-xl border bg-card" />
               )}

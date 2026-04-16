@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
@@ -21,6 +22,8 @@ export interface AprilSummaryRow {
   name: string
   fileCount: number
   totalVolume: number
+  fileViewerHref?: string
+  rowHref?: string
 }
 
 interface AprilSummaryTableProps {
@@ -97,7 +100,7 @@ export function AprilSummaryTable({ entityLabel, rows }: AprilSummaryTableProps)
   }
 
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border">
+    <div className="mt-4 max-w-full overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-left text-muted-foreground">
@@ -138,9 +141,29 @@ export function AprilSummaryTable({ entityLabel, rows }: AprilSummaryTableProps)
         <tbody>
           {sortedRows.map((row, index) => (
             <tr key={`${row.id ?? row.name}-${index}`} className="border-b last:border-0">
-              <td className="px-4 py-2.5">{row.name}</td>
+              <td className="px-4 py-2.5">
+                {row.rowHref ? (
+                  <Link
+                    href={row.rowHref}
+                    className="font-medium text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                  >
+                    {row.name}
+                  </Link>
+                ) : (
+                  row.name
+                )}
+              </td>
               <td className="px-4 py-2.5 text-right font-mono tabular-nums">
-                {INTEGER_FORMATTER.format(row.fileCount)}
+                {row.fileViewerHref ? (
+                  <Link
+                    href={row.fileViewerHref}
+                    className="font-semibold text-primary underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary/80"
+                  >
+                    {INTEGER_FORMATTER.format(row.fileCount)}
+                  </Link>
+                ) : (
+                  INTEGER_FORMATTER.format(row.fileCount)
+                )}
               </td>
               <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                 {CURRENCY_FORMATTER.format(row.totalVolume)}

@@ -99,7 +99,7 @@ export function AprilBranchSummaryTable({ rows }: AprilBranchSummaryTableProps) 
   }
 
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border">
+    <div className="mt-4 max-w-full overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-left text-muted-foreground">

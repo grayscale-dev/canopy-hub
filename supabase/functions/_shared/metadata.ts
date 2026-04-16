@@ -13,6 +13,20 @@ function pickFirst(...values: Array<string | null | undefined>): string | null {
   return null;
 }
 
+function isPermutation(order: number[], size: number): boolean {
+  if (order.length !== size) return false;
+
+  const seen = new Set<number>();
+  for (const rawValue of order) {
+    if (!Number.isInteger(rawValue)) return false;
+    const value = Math.trunc(rawValue);
+    if (value < 0 || value >= size || seen.has(value)) return false;
+    seen.add(value);
+  }
+
+  return seen.size === size;
+}
+
 export function deriveColumnsFromLayout(layout: QixLayout | null): ColumnSummaryItem[] {
   const hc = layout?.qHyperCube;
   if (!hc) return [];
@@ -35,7 +49,20 @@ export function deriveColumnsFromLayout(layout: QixLayout | null): ColumnSummary
     numFormat: m.qNumFormat ?? null,
   }));
 
-  return [...dimensions, ...measures];
+  const baseColumns = [...dimensions, ...measures];
+  if (baseColumns.length === 0) return baseColumns;
+
+  const qColumnOrder = hc.qColumnOrder;
+  if (Array.isArray(qColumnOrder) && isPermutation(qColumnOrder, baseColumns.length)) {
+    return qColumnOrder.map((baseIndex) => baseColumns[baseIndex] as ColumnSummaryItem);
+  }
+
+  const qEffectiveOrder = hc.qEffectiveInterColumnSortOrder;
+  if (Array.isArray(qEffectiveOrder) && isPermutation(qEffectiveOrder, baseColumns.length)) {
+    return qEffectiveOrder.map((baseIndex) => baseColumns[baseIndex] as ColumnSummaryItem);
+  }
+
+  return baseColumns;
 }
 
 export function isHypercubeLayout(layout: QixLayout | null): boolean {

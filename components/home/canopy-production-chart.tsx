@@ -19,20 +19,93 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { cn } from "@/lib/utils"
 
 interface CanopyProductionChartProps {
   labels: string[]
   monthlyFundedCounts: number[]
   monthlyFundedVolumes: number[]
+  className?: string
 }
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 })
+const MIN_BAR_HEIGHT_FOR_INSIDE_LABEL = 26
 
 function toFiniteNumber(value: unknown) {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+function renderBarLabel(props: {
+  x?: unknown
+  y?: unknown
+  width?: unknown
+  height?: unknown
+  value?: unknown
+}) {
+  const { x, y, width, height, value } = props
+  const labelValue = NUMBER_FORMATTER.format(toFiniteNumber(value))
+  const safeX = toFiniteNumber(x)
+  const safeY = toFiniteNumber(y)
+  const safeWidth = toFiniteNumber(width)
+  const safeHeight = toFiniteNumber(height)
+  const centerX = safeX + safeWidth / 2
+  const canRenderInside = safeHeight >= MIN_BAR_HEIGHT_FOR_INSIDE_LABEL
+  const labelWidth = Math.max(22, labelValue.length * 6 + 10)
+  const labelHeight = 14
+  const labelX = centerX - labelWidth / 2
+
+  if (canRenderInside) {
+    const labelY = safeY + 4
+    return (
+      <g>
+        <rect
+          x={labelX}
+          y={labelY}
+          width={labelWidth}
+          height={labelHeight}
+          rx={4}
+          fill="rgba(15, 23, 42, 0.78)"
+        />
+        <text
+          x={centerX}
+          y={labelY + 10}
+          textAnchor="middle"
+          fill="#ffffff"
+          fontSize={10}
+          fontWeight={600}
+        >
+          {labelValue}
+        </text>
+      </g>
+    )
+  }
+
+  const labelY = Math.max(2, safeY - labelHeight - 4)
+  return (
+    <g>
+      <rect
+        x={labelX}
+        y={labelY}
+        width={labelWidth}
+        height={labelHeight}
+        rx={4}
+        fill="rgba(15, 23, 42, 0.78)"
+      />
+      <text
+        x={centerX}
+        y={labelY + 10}
+        textAnchor="middle"
+        fill="#ffffff"
+        fontSize={10}
+        fontWeight={600}
+      >
+        {labelValue}
+      </text>
+    </g>
+  )
 }
 
 const chartConfig = {
@@ -50,6 +123,7 @@ export function CanopyProductionChart({
   labels,
   monthlyFundedCounts,
   monthlyFundedVolumes,
+  className,
 }: CanopyProductionChartProps) {
   const data = labels.map((label, index) => ({
     label,
@@ -58,11 +132,14 @@ export function CanopyProductionChart({
   }))
 
   return (
-    <ChartContainer config={chartConfig} className="h-[360px] w-full">
+    <ChartContainer
+      config={chartConfig}
+      className={cn("h-[360px] w-full", className)}
+    >
       <ComposedChart
         data={data}
         margin={{
-          top: 12,
+          top: 30,
           right: 16,
           left: 0,
           bottom: 0,
@@ -76,6 +153,7 @@ export function CanopyProductionChart({
           axisLine={false}
           width={44}
           allowDecimals={false}
+          domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
         />
         <YAxis
           yAxisId="right"
@@ -83,6 +161,7 @@ export function CanopyProductionChart({
           tickLine={false}
           axisLine={false}
           width={66}
+          domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
           tickFormatter={(value) => formatCompactCurrency(Number(value))}
         />
         <ChartTooltip
@@ -120,13 +199,7 @@ export function CanopyProductionChart({
           radius={[6, 6, 0, 0]}
           barSize={22}
         >
-          <LabelList
-            dataKey="fundedCount"
-            position="top"
-            offset={8}
-            className="fill-foreground text-[10px]"
-            formatter={(value) => NUMBER_FORMATTER.format(toFiniteNumber(value))}
-          />
+          <LabelList dataKey="fundedCount" content={renderBarLabel} />
         </Bar>
         <Line
           yAxisId="right"
@@ -140,8 +213,8 @@ export function CanopyProductionChart({
           <LabelList
             dataKey="fundedVolume"
             position="top"
-            offset={8}
-            className="fill-muted-foreground text-[10px]"
+            offset={14}
+            className="fill-foreground text-[10px]"
             formatter={(value) => formatCompactCurrency(toFiniteNumber(value))}
           />
         </Line>

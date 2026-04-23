@@ -200,9 +200,13 @@ export function PoliciesSidebarLauncher({
     >
       <SidebarMenuItem>
         <DialogTrigger asChild>
-          <SidebarMenuButton type="button" className="cursor-pointer">
+          <SidebarMenuButton
+            type="button"
+            className="cursor-pointer"
+            tooltip="Policies"
+          >
             <BookTextIcon />
-            <span>Policies</span>
+            <span className="group-data-[collapsible=icon]:hidden">Policies</span>
           </SidebarMenuButton>
         </DialogTrigger>
       </SidebarMenuItem>

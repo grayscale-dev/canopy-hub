@@ -138,9 +138,13 @@ export function NewslettersSidebarLauncher({
     >
       <SidebarMenuItem>
         <DialogTrigger asChild>
-          <SidebarMenuButton type="button" className="cursor-pointer">
+          <SidebarMenuButton
+            type="button"
+            className="cursor-pointer"
+            tooltip="Newsletters"
+          >
             <NewspaperIcon />
-            <span>Newsletters</span>
+            <span className="group-data-[collapsible=icon]:hidden">Newsletters</span>
           </SidebarMenuButton>
         </DialogTrigger>
       </SidebarMenuItem>

@@ -133,9 +133,15 @@ export function OfficeFloorPlanSidebarLauncher({
     >
       <SidebarMenuItem>
         <DialogTrigger asChild>
-          <SidebarMenuButton type="button" className="cursor-pointer">
+          <SidebarMenuButton
+            type="button"
+            className="cursor-pointer"
+            tooltip="Office Floor Plan"
+          >
             <LayoutPanelTopIcon />
-            <span>Office Floor Plan</span>
+            <span className="group-data-[collapsible=icon]:hidden">
+              Office Floor Plan
+            </span>
           </SidebarMenuButton>
         </DialogTrigger>
       </SidebarMenuItem>

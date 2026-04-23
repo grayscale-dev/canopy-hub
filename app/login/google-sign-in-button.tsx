@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -30,7 +31,21 @@ export function GoogleSignInButton({ className }: { className?: string }) {
       onClick={handleSignIn}
       disabled={isLoading}
     >
-      {isLoading ? "Redirecting..." : "Continue with Google"}
+      {isLoading ? (
+        "Redirecting..."
+      ) : (
+        <>
+          <Image
+            src="/google-logo.png"
+            alt=""
+            width={18}
+            height={18}
+            className="h-[18px] w-[18px]"
+            aria-hidden
+          />
+          <span>Continue with Google</span>
+        </>
+      )}
     </Button>
   )
 }

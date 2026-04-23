@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { ExternalLinkIcon } from "lucide-react"
 import {
   FaFacebookF,
   FaInstagram,
@@ -24,7 +25,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 import {
   fetchAprilBranchSummaryFromRpc,
   fetchAprilDivisionSummaryFromRpc,
@@ -39,6 +39,12 @@ import {
 } from "@/lib/hub-data"
 import type { FileViewerFilterField } from "@/lib/file-viewer-filters"
 import type { FileViewerFilterOperator } from "@/lib/file-viewer-filters"
+import {
+  compareNewsletterFilesDescending,
+  NEWSLETTER_BUCKET,
+  parseNewsletterFileName,
+  type NewsletterFileSummary,
+} from "@/lib/newsletters"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const metadata = {
@@ -65,6 +71,27 @@ const SOCIAL_MEDIA_LINKS = [
     label: "Facebook",
     href: "https://www.facebook.com/people/CanopyMortgage/61555767074405",
     icon: FaFacebookF,
+  },
+] as const
+
+const HELPFUL_RESOURCE_LINKS = [
+  {
+    label: "Canopy Wiki",
+    description: "Training docs and process guides.",
+    href: "https://sites.google.com/canopymortgage.com/trainingwiki/home?authuser=0",
+    external: true,
+  },
+  {
+    label: "Department Directory",
+    description: "Open the department directory.",
+    href: "/support",
+    external: false,
+  },
+  {
+    label: "Compliment Your Team",
+    description: "Submit recognition for a teammate.",
+    href: "https://docs.google.com/forms/d/e/1FAIpQLSd8FR2h37lG3e64t9_qNIoAn6qkUQaiycSyTzrGQO4unHaceA/viewform",
+    external: true,
   },
 ] as const
 
@@ -213,9 +240,23 @@ export default async function HomePage() {
     user.email?.split("@")[0] ??
     "there"
   const firstName = displayName.trim().split(/\s+/)[0] || "there"
-  const aprilYear = new Date().getFullYear()
-  const aprilClosedStart = `${aprilYear}-04-01`
-  const aprilClosedEnd = `${aprilYear}-04-30`
+  const leaderboardReferenceDate = new Date()
+  const leaderboardYear = leaderboardReferenceDate.getFullYear()
+  const leaderboardMonthIndex = leaderboardReferenceDate.getMonth()
+  const leaderboardMonthName = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+  }).format(leaderboardReferenceDate)
+  const leaderboardMonthLabel = `${leaderboardMonthName} ${leaderboardYear}`
+  const leaderboardMonthNumber = String(leaderboardMonthIndex + 1).padStart(2, "0")
+  const leaderboardMonthEndDay = new Date(
+    leaderboardYear,
+    leaderboardMonthIndex + 1,
+    0
+  ).getDate()
+  const leaderboardClosedStart = `${leaderboardYear}-${leaderboardMonthNumber}-01`
+  const leaderboardClosedEnd = `${leaderboardYear}-${leaderboardMonthNumber}-${String(
+    leaderboardMonthEndDay
+  ).padStart(2, "0")}`
 
   let productionChartError: string | null = null
   let productionSeries: Awaited<
@@ -253,6 +294,7 @@ export default async function HomePage() {
   let loanProgramChartSummary: Awaited<
     ReturnType<typeof fetchPreviousMonthLoanProgramSummaryFromRpc>
   > | null = null
+  let recentNewsletters: NewsletterFileSummary[] = []
 
   const [
     chartResult,
@@ -264,6 +306,7 @@ export default async function HomePage() {
     aprilUnderwritingOrgResult,
     corporateTurnResult,
     loanProgramChartResult,
+    recentNewslettersResult,
   ] =
     await Promise.allSettled([
       fetchCanopyProductionSeriesFromRpc(),
@@ -275,6 +318,20 @@ export default async function HomePage() {
       fetchAprilUnderwritingOrgSummaryFromRpc(),
       fetchCorporateTurnSummaryFromRpc(),
       fetchPreviousMonthLoanProgramSummaryFromRpc(),
+      (async () => {
+        const { data: files, error } = await supabase.storage
+          .from(NEWSLETTER_BUCKET)
+          .list("", { limit: 1000 })
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        return (files ?? [])
+          .map((file) => parseNewsletterFileName(file.name))
+          .filter((file): file is NewsletterFileSummary => file !== null)
+          .sort(compareNewsletterFilesDescending)
+          .slice(0, 4)
+      })(),
     ])
 
   if (chartResult.status === "fulfilled") {
@@ -331,6 +388,12 @@ export default async function HomePage() {
     loanProgramChartError = "Data load failed."
   }
 
+  if (recentNewslettersResult.status === "fulfilled") {
+    recentNewsletters = recentNewslettersResult.value
+  } else {
+    recentNewsletters = []
+  }
+
   const topAprilDivisionSummary = toTop20ByPerformance(
     aprilDivisionSummary.map((row) => ({
       id: row.divisionId,
@@ -342,8 +405,8 @@ export default async function HomePage() {
         entity: "division",
         entityId: row.divisionId,
         label: row.divisionName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -359,8 +422,8 @@ export default async function HomePage() {
         entity: "branch",
         entityId: row.branchId,
         label: row.branchName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -378,8 +441,8 @@ export default async function HomePage() {
         entity: "loanOfficer",
         entityId: row.loanOfficerId,
         label: row.loanOfficerName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -397,8 +460,8 @@ export default async function HomePage() {
         entity: "processor",
         entityId: row.processorId,
         label: row.processorName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -416,8 +479,8 @@ export default async function HomePage() {
         entity: "underwriter",
         entityId: row.underwriterId,
         label: row.underwriterName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -432,8 +495,8 @@ export default async function HomePage() {
         entity: "underwritingOrg",
         entityId: row.underwritingOrgId,
         label: row.underwritingOrgName,
-        closedDateStart: aprilClosedStart,
-        closedDateEnd: aprilClosedEnd,
+        closedDateStart: leaderboardClosedStart,
+        closedDateEnd: leaderboardClosedEnd,
       }),
     }))
   )
@@ -488,9 +551,21 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">
-                Canopy Production Last 12 Months
-              </h2>
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-xl font-semibold">
+                  Canopy Production Last 12 Months
+                </h2>
+                <a
+                  href="/view/canopy-production-last-12-months"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Open Canopy Production Last 12 Months in new tab"
+                  title="Open in new tab"
+                >
+                  <ExternalLinkIcon className="h-4 w-4" />
+                </a>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Funded Loans (bar) and Funded Volume (line)
               </p>
@@ -509,7 +584,19 @@ export default async function HomePage() {
               )}
             </div>
             <div className="rounded-xl border bg-card p-6 text-card-foreground">
-              <h2 className="text-xl font-semibold">Corporate Turn Times</h2>
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-xl font-semibold">Corporate Turn Times</h2>
+                <a
+                  href="/view/corporate-turn-times"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Open Corporate Turn Times in new tab"
+                  title="Open in new tab"
+                >
+                  <ExternalLinkIcon className="h-4 w-4" />
+                </a>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Corporate workflow status metrics and turnaround times.
               </p>
@@ -646,12 +733,26 @@ export default async function HomePage() {
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="xl:col-span-2 px-1 pt-2">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                  April&apos;s Leaderboard
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ranked funded file count and volume across teams and roles.
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight">
+                      {leaderboardMonthName}&apos;s Leaderboard
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Ranked funded file count and volume across teams and roles.
+                    </p>
+                  </div>
+                  <a
+                    href="/view/month-leaderboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label={`Open ${leaderboardMonthName} Leaderboard in new tab`}
+                    title="Open in new tab"
+                  >
+                    <ExternalLinkIcon className="h-4 w-4" />
+                  </a>
+                </div>
               </div>
               <div className="rounded-xl border bg-card p-6 text-card-foreground">
                 <h2 className="text-xl font-semibold">Division</h2>
@@ -662,7 +763,7 @@ export default async function HomePage() {
                   <p className="mt-4 text-sm text-destructive">{aprilDivisionError}</p>
                 ) : topAprilDivisionSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -680,7 +781,7 @@ export default async function HomePage() {
                   <p className="mt-4 text-sm text-destructive">{aprilBranchError}</p>
                 ) : topAprilBranchSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -702,7 +803,7 @@ export default async function HomePage() {
                   </p>
                 ) : topAprilLoanOfficerSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -720,7 +821,7 @@ export default async function HomePage() {
                   <p className="mt-4 text-sm text-destructive">{aprilProcessorError}</p>
                 ) : topAprilProcessorSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -740,7 +841,7 @@ export default async function HomePage() {
                   </p>
                 ) : topAprilUnderwriterSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -760,7 +861,7 @@ export default async function HomePage() {
                   </p>
                 ) : topAprilUnderwritingOrgSummary.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No funded files were found for April {aprilYear}.
+                    No funded files were found for {leaderboardMonthLabel}.
                   </p>
                 ) : (
                   <AprilSummaryTable
@@ -771,59 +872,22 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          <aside className="xl:w-80 xl:shrink-0">
+          <aside className="xl:w-96 xl:shrink-0 xl:pt-[5.75rem]">
             <div className="space-y-4">
               <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Social Media Sites</h2>
-                <div className="mt-4 space-y-2">
-                  {SOCIAL_MEDIA_LINKS.map((item) => (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
-                    >
-                      <item.icon className="h-4 w-4 text-muted-foreground" />
-                      <span>{item.label}</span>
-                    </a>
-                  ))}
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-xl font-semibold">Funded Loans by Loan Program</h2>
+                  <a
+                    href="/view/funded-loans-by-loan-program"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label="Open Funded Loans by Loan Program in new tab"
+                    title="Open in new tab"
+                  >
+                    <ExternalLinkIcon className="h-4 w-4" />
+                  </a>
                 </div>
-              </div>
-              <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Canopy Wiki</h2>
-                <a
-                  href="https://sites.google.com/canopymortgage.com/trainingwiki/home?authuser=0"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 block overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
-                >
-                  <Image
-                    src="/training-wiki.jpg"
-                    alt="Canopy Wiki"
-                    width={640}
-                    height={360}
-                    className="h-auto w-full"
-                  />
-                </a>
-              </div>
-              <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Need help now?</h2>
-                <Link
-                  href="/support"
-                  className="mt-4 block overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
-                >
-                  <Image
-                    src="/department-directory.png"
-                    alt="Department Directory"
-                    width={640}
-                    height={360}
-                    className="h-auto w-full"
-                  />
-                </Link>
-              </div>
-              <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Funded Loans by Loan Program</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Previous month distribution ({loanProgramChartSummary?.monthLabel ?? "—"}).
                 </p>
@@ -841,32 +905,88 @@ export default async function HomePage() {
                 )}
               </div>
               <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Compliment Your Team!</h2>
+                <h2 className="text-xl font-semibold">Helpful Links</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Notice an employee that works hard without recognition? Say
-                  something nice!
+                  Quick access to support, training, and social channels.
                 </p>
-                <div className="mt-4 overflow-hidden rounded-lg border">
-                  <Image
-                    src="/compliment-employee.jpg"
-                    alt="Compliment your team"
-                    width={640}
-                    height={360}
-                    className="h-auto w-full"
-                  />
+
+                <div className="mt-4 space-y-2">
+                  {HELPFUL_RESOURCE_LINKS.map((item) =>
+                    item.external ? (
+                      <a
+                        key={item.label}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+                      >
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {item.description}
+                        </p>
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        className="block rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+                      >
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {item.description}
+                        </p>
+                      </Link>
+                    )
+                  )}
                 </div>
-                <Button asChild className="mt-4 w-full">
-                  <a
-                    href="https://docs.google.com/forms/d/e/1FAIpQLSd8FR2h37lG3e64t9_qNIoAn6qkUQaiycSyTzrGQO4unHaceA/viewform"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Compliment Your Team!
-                  </a>
-                </Button>
+
+                <div className="mt-4 border-t pt-4">
+                  <p className="text-sm font-medium">Social Media</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {SOCIAL_MEDIA_LINKS.map((item) => (
+                      <a
+                        key={item.label}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                      >
+                        <item.icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="rounded-xl border bg-card p-6 text-card-foreground">
-                <h2 className="text-xl font-semibold">Newsletters</h2>
+                <h2 className="text-xl font-semibold">Recent Newsletters</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Latest four monthly newsletters.
+                </p>
+                <div className="mt-4 space-y-2">
+                  {recentNewsletters.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No newsletters available.
+                    </p>
+                  ) : (
+                    recentNewsletters.map((newsletter, index) => (
+                      <a
+                        key={newsletter.fileName}
+                        href={`/newsletters/open?file=${encodeURIComponent(newsletter.fileName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                      >
+                        <span>{newsletter.label}</span>
+                        {index === 0 ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            Current
+                          </span>
+                        ) : null}
+                      </a>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </aside>

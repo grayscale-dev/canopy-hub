@@ -27,39 +27,38 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <Image
-          src="/logo.png"
-          alt="Canopy Hub logo"
-          width={120}
-          height={40}
-          className="mx-auto mb-6 h-10 w-auto dark:hidden"
-          priority
-        />
-        <Image
-          src="/logo-light.png"
-          alt="Canopy Hub logo"
-          width={120}
-          height={40}
-          className="mx-auto mb-6 hidden h-10 w-auto dark:block"
-          priority
-        />
-        <Card className="text-center">
-          <CardHeader>
-            <CardTitle>Login to your account</CardTitle>
-            <CardDescription>
+    <main
+      className="relative flex min-h-svh items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat p-6"
+      style={{ backgroundImage: "url('/background-subdivision.jpg')" }}
+    >
+      <div className="absolute inset-0 bg-black/50" />
+
+      <Card className="relative z-10 w-full max-w-md border-white/30 bg-white/12 shadow-2xl backdrop-blur-xl">
+        <CardHeader className="space-y-4 px-7 pt-7 text-left sm:px-8 sm:pt-8">
+          <Image
+            src="/logo-light.png"
+            alt="Canopy Hub logo"
+            width={140}
+            height={46}
+            className="h-10 w-auto"
+            priority
+          />
+          <div className="space-y-1.5">
+            <CardTitle className="text-2xl leading-tight text-white sm:text-[1.75rem]">
+              Login to your account
+            </CardTitle>
+            <CardDescription className="max-w-[35ch] text-sm leading-relaxed text-white/80">
               Sign in with your Google account to continue
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <GoogleSignInButton className="w-full" />
-          </CardContent>
-        </Card>
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Version {packageJson.version}
-        </p>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5 px-7 pb-7 sm:px-8 sm:pb-8">
+          <GoogleSignInButton className="w-full py-5" />
+          <div className="border-t border-white/20 pt-4">
+            <p className="text-xs text-white/70">Version {packageJson.version}</p>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   )
 }

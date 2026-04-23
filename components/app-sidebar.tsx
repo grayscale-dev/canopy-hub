@@ -1,5 +1,6 @@
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import {
   BarChart3Icon,
   CircleDollarSignIcon,
@@ -21,6 +22,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -43,48 +47,62 @@ import {
 } from "@/lib/policies"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-// This is sample data.
-const data = {
-  navMain: [
-    {
-      title: "Home",
-      url: "/home",
-      icon: HomeIcon,
-    },
-    {
-      title: "Employee Directory",
-      url: "/employee-directory",
-      icon: UsersRoundIcon,
-    },
-    {
-      title: "Branches",
-      url: "/branches",
-      icon: Building2Icon,
-    },
-    {
-      title: "Bridge",
-      url: "/bridge",
-      icon: CableIcon,
-    },
-    {
-      title: "File Quality",
-      url: "/file-quality",
-      icon: BarChart3Icon,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings2Icon,
-    },
-    {
-      title: "Support",
-      url: "/support",
-      icon: LifeBuoyIcon,
-    },
-  ],
-}
+const dashboardNav = [
+  {
+    title: "Home",
+    url: "/home",
+    icon: HomeIcon,
+  },
+  {
+    title: "Pipeline",
+    url: "/pipeline",
+    icon: ListTreeIcon,
+  },
+  {
+    title: "Points Specialists",
+    url: "/points-specialists",
+    icon: CircleDollarSignIcon,
+  },
+]
+
+const operationsNav = [
+  {
+    title: "Bridge",
+    url: "/bridge",
+    icon: CableIcon,
+  },
+  {
+    title: "File Quality",
+    url: "/file-quality",
+    icon: BarChart3Icon,
+  },
+]
+
+const directoryNav = [
+  {
+    title: "Employee Directory",
+    url: "/employee-directory",
+    icon: UsersRoundIcon,
+  },
+  {
+    title: "Branches",
+    url: "/branches",
+    icon: Building2Icon,
+  },
+]
+
+const adminNav = [
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings2Icon,
+  },
+  {
+    title: "Support",
+    url: "/support",
+    icon: LifeBuoyIcon,
+  },
+]
 
 export async function AppSidebar({
   activePath,
@@ -195,20 +213,20 @@ export async function AppSidebar({
     policies = []
   }
 
-  const navSecondary = data.navSecondary.filter(
+  const navSecondary = adminNav.filter(
     (item) => item.url !== "/settings" || canViewSettings
   )
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader>
-        <div className="px-2 py-1">
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="h-16 justify-center border-b px-4 py-0">
+        <div className="flex h-full items-center group-data-[collapsible=icon]:hidden">
           <Image
             src="/logo.png"
             alt="Canopy Hub"
             width={140}
             height={40}
-            className="h-10 w-auto dark:hidden"
+            className="h-9 w-auto dark:hidden"
             priority
           />
           <Image
@@ -216,64 +234,128 @@ export async function AppSidebar({
             alt="Canopy Hub"
             width={140}
             height={40}
-            className="hidden h-10 w-auto dark:block"
+            className="hidden h-9 w-auto dark:block"
+            priority
+          />
+        </div>
+        <div className="hidden h-full items-center justify-center group-data-[collapsible=icon]:flex">
+          <Image
+            src="/canopy-logo-cube-100.png"
+            alt="Canopy Hub"
+            width={28}
+            height={28}
+            className="h-7 w-auto object-contain"
             priority
           />
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarMenu>
-          {data.navMain.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild isActive={activePath === item.url}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-          <NewslettersSidebarLauncher
-            newsletters={newsletters}
-            canUpload={canUploadNewsletters}
-          />
-          <OfficeFloorPlanSidebarLauncher
-            canUpload={canUploadOfficeFloorPlan}
-          />
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={activePath === "/pipeline"}>
-              <a href="/pipeline">
-                <ListTreeIcon />
-                <span>Pipeline</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <PoliciesSidebarLauncher
-            policies={policies}
-            canManage={canManagePolicies}
-          />
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={activePath === "/points-specialists"}
-            >
-              <a href="/points-specialists">
-                <CircleDollarSignIcon />
-                <span>Points Specialists</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {dashboardNav.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={activePath === item.url}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.title}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {operationsNav.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={activePath === item.url}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.title}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Directory</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {directoryNav.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={activePath === item.url}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.title}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Resources</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <NewslettersSidebarLauncher
+                newsletters={newsletters}
+                canUpload={canUploadNewsletters}
+              />
+              <OfficeFloorPlanSidebarLauncher
+                canUpload={canUploadOfficeFloorPlan}
+              />
+              <PoliciesSidebarLauncher
+                policies={policies}
+                canManage={canManagePolicies}
+              />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           {navSecondary.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild isActive={activePath === item.url}>
-                <a href={item.url}>
+              <SidebarMenuButton
+                asChild
+                isActive={activePath === item.url}
+                tooltip={item.title}
+              >
+                <Link href={item.url}>
                   <item.icon />
-                  <span>{item.title}</span>
-                </a>
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    {item.title}
+                  </span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

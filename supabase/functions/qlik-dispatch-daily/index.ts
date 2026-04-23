@@ -1,4 +1,3 @@
-import { assertInternalBearer } from "../_shared/auth.ts";
 import { getServiceClient } from "../_shared/db.ts";
 import { getEnv } from "../_shared/env.ts";
 import { log } from "../_shared/logger.ts";
@@ -22,6 +21,25 @@ function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
   return "Unknown error";
+}
+
+function assertSchedulerBearer(req: Request): void {
+  const env = getEnv();
+  const auth = req.headers.get("authorization") ?? "";
+  const internalExpected = `Bearer ${env.INTERNAL_FUNCTION_BEARER_TOKEN}`;
+  const serviceRoleExpected = `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`;
+
+  if (auth === internalExpected || auth === serviceRoleExpected) {
+    return;
+  }
+
+  throw new Response(
+    JSON.stringify({ error: "Unauthorized" }),
+    {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    },
+  );
 }
 
 async function runWithConcurrency<T>(
@@ -53,7 +71,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    assertInternalBearer(req);
+    assertSchedulerBearer(req);
   } catch (err) {
     if (err instanceof Response) return err;
     return jsonResponse({ error: getErrorMessage(err) }, 401);

@@ -7,12 +7,25 @@ import {
   POLICIES_MANAGE_PERMISSION,
 } from "@/lib/policies"
 import { userHasPermissionCode } from "@/lib/permissions"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
+  let adminSupabase: ReturnType<typeof createSupabaseAdminClient>
+  try {
+    adminSupabase = createSupabaseAdminClient()
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Missing admin Supabase configuration.",
+      },
+      { status: 500 }
+    )
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -76,7 +89,7 @@ export async function POST(request: Request) {
   }
 
   if (isHandbook) {
-    const { data: files, error: listError } = await supabase
+    const { data: files, error: listError } = await adminSupabase
       .storage
       .from(POLICIES_BUCKET)
       .list("", { limit: 1000 })
@@ -89,7 +102,7 @@ export async function POST(request: Request) {
       .filter((name) => isEmployeeHandbookPolicyFile(name) && name !== targetFileName)
 
     if (oldHandbooks.length > 0) {
-      const { error: removeError } = await supabase
+      const { error: removeError } = await adminSupabase
         .storage
         .from(POLICIES_BUCKET)
         .remove(oldHandbooks)
@@ -99,7 +112,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const { error } = await supabase
+  const { error } = await adminSupabase
     .storage
     .from(POLICIES_BUCKET)
     .upload(targetFileName, file, {

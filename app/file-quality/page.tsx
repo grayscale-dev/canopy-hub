@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import { FileQualityMonthPicker } from "@/components/file-quality/file-quality-month-picker"
 import { FileQualityRollupTable } from "@/components/file-quality/file-quality-rollup-table"
 import {
@@ -100,6 +101,7 @@ export default async function FileQualityPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
 
         <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">

@@ -9,6 +9,7 @@ import {
 } from "@/app/support/action-menus"
 import { SupportPermissionsDialog } from "@/app/support/support-permissions-dialog"
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -419,6 +420,7 @@ export default async function SupportPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4">

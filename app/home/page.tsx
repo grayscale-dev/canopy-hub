@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import { AprilSummaryTable } from "@/components/home/april-summary-table"
 import { CanopyProductionChart } from "@/components/home/canopy-production-chart"
 import { FundedLoansByProgramPieChart } from "@/components/home/funded-loans-by-program-pie-chart"
@@ -539,6 +540,7 @@ export default async function HomePage() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 xl:flex-row">
           <div className="flex min-w-0 flex-1 flex-col gap-4">

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import { PointsSpecialistsPaOrgFilter } from "@/components/points-specialists/pa-org-filter"
 import { PointsSummaryChart } from "@/components/points-specialists/points-summary-chart"
 import {
@@ -111,6 +112,7 @@ export default async function PointsSpecialistsPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
 
         <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">

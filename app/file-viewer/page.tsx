@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import { FileViewerFilters } from "@/components/file-viewer/file-viewer-filters"
 import { FilesTableWithDetails } from "@/components/file-viewer/files-table-with-details"
 import {
@@ -195,6 +196,7 @@ export default async function FileViewerPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
 
         <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { AdvancedSyncCard } from "@/app/settings/[section]/advanced-sync-card"
 import { PermissionsTable } from "@/app/settings/[section]/permissions-table"
 import { AppSidebar } from "@/components/app-sidebar"
+import { HeaderFeedbackButton } from "@/components/layouts/header-feedback-button"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -139,6 +140,7 @@ export default async function SettingsSubPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <HeaderFeedbackButton className="ml-auto" />
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4">

@@ -46,6 +46,7 @@ import {
   type PolicyFileSummary,
 } from "@/lib/policies"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { FeaturebaseMessenger } from "@/components/featurebase-messenger"
 
 const dashboardNav = [
   {
@@ -219,6 +220,11 @@ export async function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
+      <FeaturebaseMessenger
+        email={authUser.email ?? null}
+        userId={authUser.id}
+        name={user.name}
+      />
       <SidebarHeader className="h-16 justify-center border-b px-4 py-0">
         <div className="flex h-full items-center group-data-[collapsible=icon]:hidden">
           <Image

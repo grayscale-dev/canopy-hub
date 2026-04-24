@@ -59,6 +59,17 @@ export default async function LoginPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="absolute right-0 bottom-6 left-0 z-10 flex items-center justify-center gap-2 px-6 text-white/60">
+        <Image
+          src="/grayscale-logo.png"
+          alt="Grayscale Development logo"
+          width={18}
+          height={18}
+          className="h-[18px] w-[18px] rounded-sm object-contain invert opacity-50"
+        />
+        <p className="text-xs font-medium">Created by Grayscale Development</p>
+      </div>
     </main>
   )
 }

@@ -1,1 +1,0 @@
-export const FEATUREBASE_APP_ID = "69ebe5f23738ba851123ec57"
